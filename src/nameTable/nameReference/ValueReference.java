@@ -1,7 +1,7 @@
 package nameTable.nameReference;
 
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * A reference to a value, that is, it is a field or a variable. For a value reference, we can test if it is 
@@ -13,28 +13,20 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-28
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class ValueReference extends NameReference {
 	private boolean isLeftValue = false;
 
-	public ValueReference(String name, SourceCodeLocation location) {
-		super(name, location);
-		// TODO Auto-generated constructor stub
-	}
-
-	public ValueReference(String name, SourceCodeLocation location, NameReferenceKind kind) {
-		super(name, location, kind);
-		// TODO Auto-generated constructor stub
-	}
-
 	public ValueReference(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
-		// TODO Auto-generated constructor stub
+		kind = NameReferenceKind.NRK_VARIABLE;
 	}
 
 	public ValueReference(String name, SourceCodeLocation location, NameScope scope, NameReferenceKind kind) {
 		super(name, location, scope, kind);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -55,7 +47,7 @@ public class ValueReference extends NameReference {
 	/**
 	 * Return a better string of the reference for debugging
 	 */
-	public String referenceToString(int indent, boolean includeLiteral) {
+	public String toMultilineString(int indent, boolean includeLiteral) {
 	
 		// Create a space string for indent;
 		char[] indentArray = new char[indent];
@@ -63,10 +55,10 @@ public class ValueReference extends NameReference {
 		String indentString = new String(indentArray);
 
 		StringBuffer buffer = new StringBuffer(indentString);
-		if (isLeftValue) buffer.append("Reference: [Left Value Name = " + name);
-		else buffer.append("Reference: [Right Value Name = " + name);
+		if (isLeftValue) buffer.append(kind.id + " Reference [Left Value Name = " + name);
+		else buffer.append(kind.id + " Reference [Right Value Name = " + name);
 		if (indent > 0) buffer.append(" @" + location.toString() + "]\n");
-		else buffer.append(" @" + location.toFullString() + "]\n");
+		else buffer.append(" @" + location.getUniqueId() + "]\n");
 			
 		return buffer.toString();
 	}

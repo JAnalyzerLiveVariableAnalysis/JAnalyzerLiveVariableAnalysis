@@ -9,10 +9,10 @@ import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
-
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFile;
 
 /**
  * @author Zhou Xiaocong
@@ -35,7 +35,7 @@ public class CodeLineCounterMetric extends SoftwareSizeMetric {
 		if (structManager != this.structManager) {
 			this.structManager = structManager;
 			tableManager = structManager.getNameTableManager();
-			parser = tableManager.getSouceCodeParser();
+			parser = tableManager.getSouceCodeFileSet();
 			
 			reset();
 			counter.reset();
@@ -147,20 +147,20 @@ public class CodeLineCounterMetric extends SoftwareSizeMetric {
 	}
 
 	protected void counterCompilationUnitSourceCode(CompilationUnitScope unit) {
-		String content = parser.findFileContentByUnitFullName(unit.getUnitFullName());
+		SourceCodeFile codeFile = parser.findSourceCodeFileByFileUnitName(unit.getUnitName());
+		String content = codeFile.getFileContent();
 		if (content == null) return;
 		
-		int totalLines = parser.getCurrentFileLineNumber();
+		int totalLines = codeFile.getTotalLines();
 		counter.counter(content, 1, totalLines+1);
 		
 		// Release the memory in the parser. When can findDeclarationForCompilationUnitScope, it will load 
 		// file contents and AST to the memory.
-		parser.releaseCurrentCompilatinUnits();
-		parser.releaseCurrentFileContents();
+		codeFile.releaseFileContent();
 	}
 
 	protected void counterPackageSourceCode(PackageDefinition packageDefinition) {
-		List<CompilationUnitScope> unitList = packageDefinition.getCompilationUnitList();
+		List<CompilationUnitScope> unitList = packageDefinition.getCompilationUnitScopeList();
 		if (unitList == null) return;
 
 		for (CompilationUnitScope unit : unitList) {
@@ -180,24 +180,30 @@ public class CodeLineCounterMetric extends SoftwareSizeMetric {
 
 	protected void counterClassSourceCode(DetailedTypeDefinition type) {
 		CompilationUnitScope unit = tableManager.getEnclosingCompilationUnitScope(type);
-		String content = parser.findFileContentByUnitFullName(unit.getUnitFullName());
+		SourceCodeFile codeFile = parser.findSourceCodeFileByFileUnitName(unit.getUnitName());
+
+		String content = codeFile.getFileContent();
 		if (content == null) return;
 		
 		int startLine = type.getLocation().getLineNumber();
 		int endLine = type.getEndLocation().getLineNumber() + 1;
 
 		counter.counter(content, startLine, endLine);
+		codeFile.releaseFileContent();
 	}
 	
 	protected void counterMethodSourceCode(MethodDefinition method) {
 		CompilationUnitScope unit = tableManager.getEnclosingCompilationUnitScope(method);
-		String content = parser.findFileContentByUnitFullName(unit.getUnitFullName());
+		SourceCodeFile codeFile = parser.findSourceCodeFileByFileUnitName(unit.getUnitName());
+
+		String content = codeFile.getFileContent();
 		if (content == null) return;
 		
 		int startLine = method.getLocation().getLineNumber();
 		int endLine = method.getEndLocation().getLineNumber() + 1;
 
 		counter.counter(content, startLine, endLine);
+		codeFile.releaseFileContent();
 	}
 
 }

@@ -18,7 +18,7 @@ public class ClassDependenceNode implements GraphNode {
 		this.classDefinition = classDefinition;
 		String locationString = classDefinition.getLocation().toString();
 		this.id = classDefinition.getSimpleName() + "@" + locationString; 
-		locationString = classDefinition.getLocation().toFullString();
+		locationString = classDefinition.getLocation().getUniqueId();
 		this.label = classDefinition.getSimpleName() + "@" + locationString;; 
 	}
 	

@@ -6,7 +6,6 @@ import nameTable.nameDefinition.FieldDefinition;
 import graph.basic.GraphUtil;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
-import softwareStructure.FieldReferenceMatrix;
 import softwareStructure.MethodInvocationMatrix;
 import softwareStructure.MethodReferenceMatrix;
 

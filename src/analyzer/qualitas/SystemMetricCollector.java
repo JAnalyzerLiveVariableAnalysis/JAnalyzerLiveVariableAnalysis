@@ -16,8 +16,8 @@ import softwareMeasurement.SystemScopeMeasurement;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -116,7 +116,7 @@ public class SystemMetricCollector {
 		for (int index = versionPaths.length-1; index < versionPaths.length; index++) {
 			String path = QualitasPathsManager.getSystemPath(systemName, versionPaths[index]);
 			
-			SourceCodeParser parser = new SourceCodeParser(path);
+			SourceCodeFileSet parser = new SourceCodeFileSet(path);
 			NameTableCreator creator = new NameDefinitionCreator(parser);
 
 			Debug.setStart("Begin creating system, path = " + path);
@@ -124,7 +124,7 @@ public class SystemMetricCollector {
 			Debug.time("End creating.....");
 			Debug.flush();
 			SoftwareStructManager structManager = new SoftwareStructManager(manager);
-			SystemScope rootScope = manager.getRootScope();
+			SystemScope rootScope = manager.getSystemScope();
 
 			Debug.setStart("Begin calculating measures....!");
 			SystemScopeMeasurement measurement = new SystemScopeMeasurement(rootScope, structManager);

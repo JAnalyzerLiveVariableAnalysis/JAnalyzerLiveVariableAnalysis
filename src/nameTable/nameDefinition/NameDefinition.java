@@ -1,17 +1,18 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
-
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceLabel;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The abstract base class for the class which represents a name definition
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2015/11/5
+ * 		Refactor the class according to the design document
  */
 public abstract class NameDefinition implements Comparable<NameDefinition> {
 	protected String simpleName = null;
@@ -21,16 +22,6 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 	
 	public static final char LOCATION_ID_BEGINNER = '@';
 	
-	public NameDefinition(String simpleName) {
-		this.simpleName = simpleName;
-		fullQualifiedName = simpleName;
-	}
-	
-	public NameDefinition(String simpleName, String fullQualifiedName) {
-		this.simpleName = simpleName;
-		this.fullQualifiedName = fullQualifiedName;
-	}
-
 	public NameDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope) {
 		this.simpleName = simpleName;
 		this.fullQualifiedName = fullQualifiedName;
@@ -54,20 +45,18 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 		return scope;
 	}
 
-	public void setLocation(SourceCodeLocation location) {
-		this.location = location;
-	}
-
-	public void setScope(NameScope scope) {
-		this.scope = scope;
-	}
-
 	public abstract NameDefinitionKind getDefinitionKind();
 	
 	public boolean isTypeDefinition() {
 		return (getDefinitionKind() == NameDefinitionKind.NDK_TYPE);
 	}
 	
+	public boolean isEnumType() {
+		if (getDefinitionKind() != NameDefinitionKind.NDK_TYPE) return false;
+		TypeDefinition type = (TypeDefinition)this;
+		return type.isEnumType(); 
+	}
+
 	public boolean isDetailedType() {
 		if (getDefinitionKind() != NameDefinitionKind.NDK_TYPE) return false;
 		TypeDefinition type = (TypeDefinition)this;
@@ -87,6 +76,14 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 		return (kind == NameDefinitionKind.NDK_VARIABLE || kind == NameDefinitionKind.NDK_PARAMETER);
 	}
 
+	public boolean isImportedType() {
+		return false;
+	}
+	
+	public boolean isImportedStaticMember() {
+		return false;
+	}
+	
 	/**
 	 * Match a reference name to the current name definition name. If the reference name contains qualifier ("."), 
 	 *    then match the reference name to the fuallqualifiedName from the right to left, else match the reference 
@@ -119,7 +116,6 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 			// In JDK, there is a class org.omg.CORBA.ORB and a class com.sun.corba.se.org.omg.CORBA.ORG. If we just use endsWith() to 
 			// match, then the latter will match the former, but it is an error! 
 			// So we use the precise match method, i.e. equals()!!!
-//			return fullQualifiedName.endsWith(namePostFix);
 			return fullQualifiedName.equals(namePostFix);
 		} else {
 			if (simpleName == null) return false;
@@ -177,8 +173,8 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 	}
 
 	public String toFullString() {
-		StringBuffer buffer = new StringBuffer("Name Definition [fullQualifiedName = " + fullQualifiedName);
-		if (location != null) buffer.append(", location = " + location.toFullString());
+		StringBuffer buffer = new StringBuffer(getDefinitionKind().id + " Definition [fullQualifiedName = " + fullQualifiedName);
+		if (location != null) buffer.append(", location = " + location.getUniqueId());
 		if (scope != null) buffer.append(", scope = " + scope.getScopeName());
 		buffer.append(", simpleName = " + simpleName + "]");
 		return  buffer.toString();
@@ -189,12 +185,7 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 	 */
 	@Override
 	public String toString() {
-		String result = "Definition [name = " + simpleName;
-		if (location != null) result = result  + " @ " + location.toFullString() + "]";
-		else result = result + "]";
+		String result = getDefinitionKind().id + " Definition [" + getUniqueId() + "]";
 		return result;
 	}
-
-	public abstract void printDefinitions(PrintWriter writer, int indent);
-	
 }

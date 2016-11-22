@@ -28,7 +28,7 @@ public class NameTableComparator {
 	public static boolean compareFieldDefinition(FieldDefinition one, FieldDefinition two, PrintWriter report) {
 		StringBuilder reportString = new StringBuilder("Field");
 		
-		String locationString = splitter + one.getLocation().toFullString() + splitter + two.getLocation().toFullString();
+		String locationString = splitter + one.getLocation().getUniqueId() + splitter + two.getLocation().getUniqueId();
 		
 		String oneName = one.getSimpleName();
 		String twoName = two.getSimpleName();
@@ -62,7 +62,7 @@ public class NameTableComparator {
 	public static boolean compareMethodDefinitionSignature(MethodDefinition one, MethodDefinition two, PrintWriter report) {
 		StringBuilder reportString = new StringBuilder("Method");
 		
-		String locationString = splitter + one.getLocation().toFullString() + splitter + two.getLocation().toFullString();
+		String locationString = splitter + one.getLocation().getUniqueId() + splitter + two.getLocation().getUniqueId();
 		
 		String oneName = one.getSimpleName();
 		String twoName = two.getSimpleName();
@@ -85,8 +85,8 @@ public class NameTableComparator {
 			return false;
 		}
 		
-		List<VariableDefinition> oneParaList = one.getParameters();
-		List<VariableDefinition> twoParaList = two.getParameters();
+		List<VariableDefinition> oneParaList = one.getParameterList();
+		List<VariableDefinition> twoParaList = two.getParameterList();
 		if (oneParaList != null || twoParaList != null) {
 			if (oneParaList == null) {
 				reportString.append(splitter + "the first has no parameter, but the second has " + twoParaList.size() + " parameters");
@@ -130,8 +130,8 @@ public class NameTableComparator {
 			}
 		}
 		
-		List<TypeReference> oneThrowList = one.getThrowTypes();
-		List<TypeReference> twoThrowList = two.getThrowTypes();
+		List<TypeReference> oneThrowList = one.getThrowTypeList();
+		List<TypeReference> twoThrowList = two.getThrowTypeList();
 		if (oneThrowList != null || twoThrowList != null) {
 			if (oneThrowList == null) {
 				reportString.append(splitter + "the first has no throw type, but the second has " + twoThrowList.size() + " throw types");
@@ -183,7 +183,7 @@ public class NameTableComparator {
 		int sameItems = 0;
 
 		StringBuilder reportString = new StringBuilder("Class");
-		String locationString = splitter + one.getLocation().toFullString() + splitter + two.getLocation().toFullString();
+		String locationString = splitter + one.getLocation().getUniqueId() + splitter + two.getLocation().getUniqueId();
 		
 		String oneName = one.getSimpleName();
 		String twoName = two.getSimpleName();
@@ -629,8 +629,8 @@ public class NameTableComparator {
 		reportString.append(locationString);
 		if (report != null) report.println(reportString.toString());
 		
-		List<DetailedTypeDefinition> oneTypeList = one.getAllDetailedTypeDefinition();
-		List<DetailedTypeDefinition> twoTypeList = two.getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> oneTypeList = one.getAllDetailedTypeDefinitions();
+		List<DetailedTypeDefinition> twoTypeList = two.getAllDetailedTypeDefinitions();
 		boolean hasDifferentType = false;
 		if (oneTypeList != null) {
 			for (int oneIndex = 0; oneIndex < oneTypeList.size(); oneIndex++) {
@@ -735,8 +735,8 @@ public class NameTableComparator {
 		if (oneQualifiedName.equals(twoQualifiedName)) sameItems = sameItems + 1;
 		oneTotalItems = oneTotalItems + 1;
 		
-		List<DetailedTypeDefinition> oneTypeList = one.getAllDetailedTypeDefinition();
-		List<DetailedTypeDefinition> twoTypeList = two.getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> oneTypeList = one.getAllDetailedTypeDefinitions();
+		List<DetailedTypeDefinition> twoTypeList = two.getAllDetailedTypeDefinitions();
 		if (oneTypeList != null) {
 			for (int oneIndex = 0; oneIndex < oneTypeList.size(); oneIndex++) {
 				String oneTypeName = oneTypeList.get(oneIndex).getSimpleName();
@@ -819,8 +819,8 @@ public class NameTableComparator {
 	 * Only those information with the similarity greater than or equal to threshold will be written to the report!
 	 */
 	public static void calculateSimilarityAtDetailedTypeLevel(NameTableManager one, NameTableManager two, PrintWriter report, double threshold) {
-		List<DetailedTypeDefinition> oneTypeList = one.getRootScope().getAllDetailedTypeDefinition();
-		List<DetailedTypeDefinition> twoTypeList = two.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> oneTypeList = one.getSystemScope().getAllDetailedTypeDefinitions();
+		List<DetailedTypeDefinition> twoTypeList = two.getSystemScope().getAllDetailedTypeDefinitions();
 
 		for (DetailedTypeDefinition oneType : oneTypeList) {
 			String oneSimpleName = oneType.getSimpleName();

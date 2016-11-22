@@ -10,8 +10,8 @@ import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
 import softwareChange.ClassChangeIndicator;
 import softwareMeasurement.measure.MeasureObjectKind;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -69,7 +69,7 @@ public class ClassChangeIndicatorCreator {
 	
 	public static ClassChangeIndicator generateChangeIndicator(String systemName, String versionOne, String versionTwo, String indicatorFile) throws IOException {
 		String pathOne = QualitasPathsManager.getSystemPath(systemName, versionOne);
-		SourceCodeParser parserOne = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parserOne = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parserOne);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -77,7 +77,7 @@ public class ClassChangeIndicatorCreator {
 		Debug.time("End creating.....");
 		
 		String pathTwo = QualitasPathsManager.getSystemPath(systemName, versionTwo);
-		SourceCodeParser parserTwo = new SourceCodeParser(pathTwo);
+		SourceCodeFileSet parserTwo = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parserTwo);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -102,7 +102,7 @@ public class ClassChangeIndicatorCreator {
 	
 	public static void generateIndicatorCheckReport(String systemName, String versionOne, String versionTwo, String indicatorFile, PrintWriter reporter) throws IOException {
 		String pathOne = QualitasPathsManager.getSystemPath(systemName, versionOne);
-		SourceCodeParser parserOne = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parserOne = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parserOne);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -110,7 +110,7 @@ public class ClassChangeIndicatorCreator {
 		Debug.time("End creating.....");
 		
 		String pathTwo = QualitasPathsManager.getSystemPath(systemName, versionTwo);
-		SourceCodeParser parserTwo = new SourceCodeParser(pathTwo);
+		SourceCodeFileSet parserTwo = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parserTwo);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);

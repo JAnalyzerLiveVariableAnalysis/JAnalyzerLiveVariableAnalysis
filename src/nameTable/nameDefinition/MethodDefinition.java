@@ -1,12 +1,10 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.Modifier;
 
-import nameTable.NameTableVisitor;
 import nameTable.nameReference.MethodReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
@@ -15,7 +13,8 @@ import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.LocalScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
-import util.SourceCodeLocation;
+import nameTable.visitor.NameTableVisitor;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The class represent a method definition
@@ -29,20 +28,24 @@ import util.SourceCodeLocation;
  * @update 2013-12-29
  * 		Add method getReturnTypeDefinition()
  * 		Add method isOverrideMethod()
+ * 
+ * @update 2016/11/5
+ * 		Refactor the class according to the design document
  */
 public class MethodDefinition extends NameDefinition implements NameScope {
-	private TypeReference returnType = null;			// The return type of the method
-	private List<VariableDefinition> parameters = null;	// The parameter list of the method
-	private List<TypeReference> throwTypes = null;		// The throw types declared for the method
-	private LocalScope bodyScope = null;				// The local scope corresponding to the body of the method
+	private TypeReference returnType = null;				// The return type of the method
+	private List<VariableDefinition> parameterList = null;	// The parameter list of the method
+	private List<TypeReference> throwTypeList = null;		// The throw types declared for the method
+	private List<TypeParameterDefinition> typeParameterList = null;
+
+	private LocalScope bodyScope = null;					// The local scope corresponding to the body of the method
 	private SourceCodeLocation endLocation = null;
 	
-	private List<NameReference> references = null;		// The reference defined in the method, i.e. the type references of the parameters of the method
-	private int flag = 0;								// The modifier flag of the method
+	private List<NameReference> referenceList = null;		// The reference defined in the method, i.e. the type references of the parameters of the method
+	private int modifier = 0;								// The modifier flag of the method
 	private boolean constructorFlag = false;
 	
-	public MethodDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, 
-			NameScope scope, SourceCodeLocation endLocation) {
+	public MethodDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope, SourceCodeLocation endLocation) {
 		super(simpleName, fullQualifiedName, location, scope);
 		this.endLocation = endLocation;
 	}
@@ -66,9 +69,14 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	@Override
 	public void define(NameDefinition nameDef) throws IllegalNameDefinition {
 		if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_PARAMETER) {
-			if (parameters == null) parameters = new ArrayList<VariableDefinition>();
-			parameters.add((VariableDefinition)nameDef);
-		} else throw new IllegalNameDefinition("Only parameters can be defined in a method definition!");
+			if (parameterList == null) parameterList = new ArrayList<VariableDefinition>();
+			parameterList.add((VariableDefinition)nameDef);
+		} else if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_TYPE_PARAMETER) {
+			if (typeParameterList == null) typeParameterList = new ArrayList<TypeParameterDefinition>();
+			typeParameterList.add((TypeParameterDefinition) nameDef);
+		} else {
+			throw new IllegalNameDefinition("Only parameters or type parameter can be defined in a method definition!");
+		}
 	}
 
 	/* (non-Javadoc)
@@ -125,8 +133,8 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 
 		// In a method definitions, we can only resolve the parameters defined in the method or the method itself.
 		if (reference.getReferenceKind() == NameReferenceKind.NRK_VARIABLE) {
-			if (parameters != null) {
-				for (VariableDefinition var : parameters) {
+			if (parameterList != null) {
+				for (VariableDefinition var : parameterList) {
 					if (var.match(reference)) return true;
 				}
 			}
@@ -180,8 +188,8 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	/**
 	 * @return the parameters
 	 */
-	public List<VariableDefinition> getParameters() {
-		return parameters;
+	public List<VariableDefinition> getParameterList() {
+		return parameterList;
 	}
 
 	/**
@@ -201,180 +209,24 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	/**
 	 * Return the throw types declared for the method
 	 */
-	public List<TypeReference> getThrowTypes() {
-		return throwTypes;
+	public List<TypeReference> getThrowTypeList() {
+		return throwTypeList;
 	}
 	
 	/**
 	 * Add a throw type for the method
 	 */
-	public void addThrowTypes(TypeReference type) {
-		if (throwTypes == null) throwTypes = new ArrayList<TypeReference>();
-		throwTypes.add(type);
+	public void addThrowType(TypeReference type) {
+		if (throwTypeList == null) throwTypeList = new ArrayList<TypeReference>();
+		throwTypeList.add(type);
 	}
 
 	@Override
 	public void addReference(NameReference reference) {
 		if (reference == null) return;
-		if (references == null) references = new ArrayList<NameReference>();
-		references.add(reference);
+		if (referenceList == null) referenceList = new ArrayList<NameReference>();
+		referenceList.add(reference);
 		
-	}
-
-	@Override
-	public List<NameReference> getReferences() {
-		return references;
-	}
-
-	@Override
-	public void printReferences(PrintWriter writer, boolean includeLiteral) {
-		StringBuffer buffer = new StringBuffer();
-		if (references != null) {
-			buffer.append("\nReferences in scope " + getScopeName() + "\n");
-			for (NameReference reference : references) {
-				buffer.append(reference.referenceToString(0, includeLiteral));
-			}
-		}
-		writer.print(buffer);
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				subscope.printReferences(writer, includeLiteral);
-			}		
-		}
-	}
-
-	@Override
-	public void printDefinitions(PrintWriter writer, int indent) {
-		StringBuffer buffer = new StringBuffer();
-
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-
-		buffer.append(indentString + "Method: " + simpleName + "\n");
-		if (returnType != null) {
-			String typeString = returnType.getName();
-			for (int count = 0; count < returnType.getDimension(); count++) typeString += "[]";
-			buffer.append(indentString + "\t Return type: " + typeString + "\n");
-		}
-		
-		if (parameters != null) {
-			buffer.append(indentString + "\t Parameters: \n");
-			for (VariableDefinition parameter : parameters) {
-				TypeReference paraType = parameter.getType();
-				String typeString = paraType.getName();
-				for (int count = 0; count < paraType.getDimension(); count++) typeString += "[]";
-				buffer.append(indentString + "\t\t " + typeString + " " + parameter.getSimpleName() + "\n");
-			}
-		}
-		writer.print(buffer);
-		
-		if (bodyScope != null) bodyScope.printDefinitions(writer, indent+1);
-	}
-	
-	@Override
-	public List<NameDefinition> findAllDefinitionsByName(String namePostFix) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (parameters != null) {
-			for (VariableDefinition varDef : parameters) {
-				if (varDef.match(namePostFix)) result.add(varDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByName(namePostFix);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByName(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameScope> findAllSubScopesByName(String name) {
-		List<NameScope> result = new ArrayList<NameScope>();
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				if (subscope.getScopeName().equals(name)) result.add(subscope);
-				List<NameScope> temp = subscope.findAllSubScopesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public NameDefinition getDefinition(String name, boolean includeSubscopes) {
-		if (parameters != null) {
-			for (VariableDefinition varDef : parameters) {
-				if (varDef.match(name)) return varDef;
-			}
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.getDefinition(name, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public NameDefinition findDefinitionById(String id, boolean includeSubscopes) {
-		if (parameters != null) {
-			for (VariableDefinition varDef : parameters) {
-				if (id.equals(varDef.getUniqueId())) return varDef;
-			}
-		}
-		if (includeSubscopes) {
-			if (bodyScope != null) {
-				NameDefinition target = bodyScope.findDefinitionById(id, includeSubscopes);
-				if (target != null) return target;
-			} else {
-//				if (id.contains("events@151:17")) {
-//					System.out.println("\t\t\tThe body scope of method " + fullQualifiedName + " is null!");
-//				}
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public List<NameReference> getReferences(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		return result;
 	}
 
 	@Override
@@ -385,44 +237,6 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 			parent = parent.getEnclosingScope();
 		}
 		return false;
-	}
-
-	@Override
-	public List<NameDefinition> findAllDefinitionsByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (parameters != null) {
-			for (VariableDefinition varDef : parameters) {
-				SourceCodeLocation location = varDef.getLocation();
-				if (location.isBetween(start, end)) result.add(varDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				SourceCodeLocation location = reference.getLocation();
-				if (location.isBetween(start, end)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
 	}
 	
 	/**
@@ -437,18 +251,21 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		// At first we should match the method name
 		if (!match(referenceName)) return false;
 		
-		List<NameReference> args = reference.getArguments();
-		
+		List<NameReference> args = reference.getArgumentList();
+
 		// Test if the number of arguments is equal to the number of parameters of the method
-		if (args == null && parameters == null) return true;
-		if (args == null && parameters != null) return false;
-		if (args != null && parameters == null) return false;
-		if (args.size() != parameters.size()) return false;
+		if (parameterList == null) {
+			if (args == null) return true;
+			if (args.size() <= 0) return true;
+			return false;
+		}
+		if (args == null) return false;
+		if (args.size() != parameterList.size()) return false;
 		
 		// Test if the type of the argument is the sub-type of the type of the corresponding parameter
 		for (int index = 0; index < args.size(); index++) {
 			NameReference argument = args.get(index);
-			VariableDefinition parameter = parameters.get(index);
+			VariableDefinition parameter = parameterList.get(index);
 			TypeDefinition argumentType = getArgumentType(argument);
 			TypeDefinition paraType = parameter.getTypeDefinition();
 			
@@ -493,19 +310,19 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		// At first the two methods must have the same simple name
 		if (!simpleName.equals(otherSimpleName)) return false;
 		
-		List<VariableDefinition> otherParas = other.getParameters();
+		List<VariableDefinition> otherParas = other.getParameterList();
 
 		// The return types of the two methods should bind to the same type definition, otherwise they do not have the same signature 
 		if (getReturnTypeDefinition() != other.getReturnTypeDefinition()) return false;
 		
 		// Test if the number of arguments is equal to the number of parameters of the method
-		if (otherParas == null && parameters == null) return true;
-		if (otherParas == null && parameters != null) return false;
-		if (otherParas != null && parameters == null) return false;
-		if (otherParas.size() != parameters.size()) return false;
+		if (otherParas == null && parameterList == null) return true;
+		if (otherParas == null && parameterList != null) return false;
+		if (otherParas != null && parameterList == null) return false;
+		if (otherParas.size() != parameterList.size()) return false;
 		
 		for (int index = 0; index < otherParas.size(); index++) {
-			VariableDefinition parameter = parameters.get(index);
+			VariableDefinition parameter = parameterList.get(index);
 			VariableDefinition otherPara = otherParas.get(index);
 			
 			// The two parameters' type should bind to the same type definition, otherwise they do not have the same signature
@@ -528,16 +345,16 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		// At first the two methods must have the same simple name
 		if (!simpleName.equals(otherSimpleName)) return false;
 		
-		List<VariableDefinition> otherParas = other.getParameters();
+		List<VariableDefinition> otherParas = other.getParameterList();
 		
 		// Test if the number of arguments is equal to the number of parameters of the method
-		if (otherParas == null && parameters == null) return false;		// This case means two methods overridden rather than overloaded
-		if (otherParas == null && parameters != null) return true;
-		if (otherParas != null && parameters == null) return true;
-		if (otherParas.size() != parameters.size()) return true;
+		if (otherParas == null && parameterList == null) return false;		// This case means two methods overridden rather than overloaded
+		if (otherParas == null && parameterList != null) return true;
+		if (otherParas != null && parameterList == null) return true;
+		if (otherParas.size() != parameterList.size()) return true;
 		
 		for (int index = 0; index < otherParas.size(); index++) {
-			VariableDefinition parameter = parameters.get(index);
+			VariableDefinition parameter = parameterList.get(index);
 			VariableDefinition otherPara = otherParas.get(index);
 			
 			// The two parameters' type should bind to the same type definition, otherwise they do not have the same signature
@@ -546,40 +363,10 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		return false;		// Also, this case means two methods overridden rather than overloaded.
 	}
 	
-	@Override
-	public List<DetailedTypeDefinition> getAllDetailedTypeDefinition() {
-		List<DetailedTypeDefinition> result = new ArrayList<DetailedTypeDefinition>();
-
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<DetailedTypeDefinition> temp = subscope.getAllDetailedTypeDefinition();
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-	
 	public SourceCodeLocation getEndLocation() {
 		return endLocation;
 	}
 
-	@Override
-	public int getTotalNumberOfDefinitions(NameDefinitionKind kind) {
-		int result = 0;
-		
-		if (kind == NameDefinitionKind.NDK_UNKNOWN || kind == NameDefinitionKind.NDK_PARAMETER) {
-			if (parameters != null) result += parameters.size();
-		}
-
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) result += subscope.getTotalNumberOfDefinitions(kind);
-		}
-		
-		return result;
-	}
-	
 	@Override
 	/**
 	 * Accept a visitor to visit the current scope
@@ -599,49 +386,49 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	 * Set the modifier flag 
 	 */
 	public void setModifierFlag(int flag) {
-		this.flag = flag;
+		this.modifier = flag;
 	}
 	
 	/**
 	 * Test if the class is public according to the modifier flag
 	 */
 	public boolean isPublic() {
-		return Modifier.isPublic(flag);
+		return Modifier.isPublic(modifier);
 	}
 
 	/**
 	 * Test if the class is private according to the modifier flag
 	 */
 	public boolean isPrivate() {
-		return Modifier.isPrivate(flag);
+		return Modifier.isPrivate(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isProtected() {
-		return Modifier.isProtected(flag);
+		return Modifier.isProtected(modifier);
 	}
 
 	/**
 	 * Test if the class is static according to the modifier flag
 	 */
 	public boolean isStatic() {
-		return Modifier.isStatic(flag);
+		return Modifier.isStatic(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isFinal() {
-		return Modifier.isFinal(flag);
+		return Modifier.isFinal(modifier);
 	}
 
 	/**
 	 * Test if the class is abstract according to the modifier flag
 	 */
 	public boolean isAbstract() {
-		return Modifier.isAbstract(flag);
+		return Modifier.isAbstract(modifier);
 	}
 	
 	public void setConstructor(boolean isConstruct) {
@@ -659,6 +446,21 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	public boolean isAutoGenerated() {
 		return false;
 	}
+
+	@Override
+	public SourceCodeLocation getScopeStart() {
+		return getLocation();
+	}
+
+	@Override
+	public SourceCodeLocation getScopeEnd() {
+		// TODO Auto-generated method stub
+		return endLocation;
+	}
 	
+	@Override
+	public List<NameReference> getReferenceList() {
+		return referenceList;
+	}
 	
 }

@@ -1,20 +1,20 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.Modifier;
 
-import nameTable.NameTableVisitor;
 import nameTable.nameReference.MethodReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.TypeReference;
+import nameTable.nameScope.LocalScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
 import nameTable.nameScope.SystemScope;
-import util.SourceCodeLocation;
+import nameTable.visitor.NameTableVisitor;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name definition represent a type with detailed field, method and member type definitions, i.e. we can
@@ -22,20 +22,25 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2016/11/5
+ * 		Refactor the class according to the design document
  */
 public class DetailedTypeDefinition extends TypeDefinition implements NameScope {
 	private List<FieldDefinition> fieldList = null;			// The fields of the type
 	private List<MethodDefinition> methodList = null;		// The methods of the type
 	private List<DetailedTypeDefinition> typeList = null;	// The member types of the type
+
 	private List<TypeReference> superList = null;			// The super types of the type, which include the super class and interfaces of the type. 
-															// The first super type must be the super class of the type
-	private List<NameReference> references = null;
-	private SourceCodeLocation endLocation = null;
-	private int flag = 0; 									// The modifier flag of the detailed type
-	private String filePath;
+	private List<TypeParameterDefinition> typeParameterList = null;
+	private List<LocalScope> initializerList = null;
 	
-	public DetailedTypeDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, 
-			NameScope scope, SourceCodeLocation endLocation) {
+	private SourceCodeLocation endLocation = null;
+	private int modifier = 0; 									// The modifier flag of the detailed type
+															// The first super type must be the super class of the type
+	private List<NameReference> referenceList = null;
+	
+	public DetailedTypeDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope, SourceCodeLocation endLocation) {
 		super(simpleName, fullQualifiedName, location, scope);
 		this.endLocation = endLocation;
 	}
@@ -54,7 +59,7 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 	}
 
 	@Override
-	public boolean isEnumeration() {
+	public boolean isEnumType() {
 		return false;
 	}
 
@@ -77,6 +82,10 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		case NDK_FIELD: 
 			if (fieldList == null) fieldList = new ArrayList<FieldDefinition>();
 			fieldList.add((FieldDefinition) nameDef);
+			break;
+		case NDK_TYPE_PARAMETER: 
+			if (typeParameterList == null) typeParameterList = new ArrayList<TypeParameterDefinition>();
+			typeParameterList.add((TypeParameterDefinition) nameDef);
 			break;
 		default:
 			throw new IllegalNameDefinition("The kind of name definition in a type have to be NDK_TYPE, NDK_METHOD or NDK_FIELD!");
@@ -160,7 +169,7 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 						// Do nothing if we do not match any method!
 					}
 				}
-				List<MethodDefinition> methodDefList = methodRef.getAlternatives();
+				List<MethodDefinition> methodDefList = methodRef.getAlternativeList();
 				if (methodDefList != null) {
 					if (methodDefList.size() > 0) {
 						MethodDefinition firstMethodDef = methodDefList.get(0);
@@ -192,8 +201,14 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 			}
 		}
 		
-		// If we can resolve the name reference in the super class, we try to resolve it in the parent scope
-		return getEnclosingScope().resolve(reference);
+		// If we can resolve the name reference in the super class, we resolve the reference in the enclosing scope when the reference is in 
+		// the scope of this detailed type! 
+		// Important Notes: if the reference is not in this detailed type, we can not resolve it in the enclosing scope of this detailed type 
+		// again, since in this case, we intend to test if the reference refers to the member of the detailed type, and then we can not resolve
+		// it when we can not match the member of the detailed type with this reference.
+		NameScope referenceScope = reference.getScope();
+		if (referenceScope == this || referenceScope.isEnclosedInScope(this)) return getEnclosingScope().resolve(reference);
+		else return false;
 	}
 
 	/**
@@ -203,25 +218,6 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		return fieldList;
 	}
 	
-	/**
-	 * Get the list of all fields defined in this type and all non-static fields defined in its all ancestor classes
-	 * @return
-	 */
-	public List<FieldDefinition> getAllFieldList() {
-		List<FieldDefinition> result = new ArrayList<FieldDefinition>();
-		if (fieldList != null) result.addAll(fieldList);
-		
-		TypeDefinition superClassDefinition = getSuperClassDefinition();
-		if (superClassDefinition != null) {
-			if (superClassDefinition.isDetailedType()) {
-				DetailedTypeDefinition superDetailedType = (DetailedTypeDefinition)superClassDefinition;
-				List<FieldDefinition> superFields = superDetailedType.getAllFieldList();
-				result.addAll(superFields);
-			}
-		}
-		return result;
-	}
-
 	/**
 	 * Get the list of methods defined in this type
 	 */
@@ -248,15 +244,6 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		superList.add(superType);
 	}
 
-	/**
-	 * Resolve super type references of the type
-	 */
-	public boolean resolveAllSupertypes() {
-		if (superList == null) return true;
-		for (TypeReference superType : superList) superType.resolveBinding();
-		return true;
-	}
-	
 	@Override
 	public TypeDefinition getSuperClassDefinition() {
 		if (superList == null) return null;
@@ -267,340 +254,25 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		return (TypeDefinition)superClassRef.getDefinition();
 	}
 
+	public List<TypeParameterDefinition> getTypeParameterList() {
+		return typeParameterList;
+	}
 	
-	@Override
-	public boolean isSubtypeOf(TypeDefinition parent) {
-		if (this == parent) return true;
-
-/*		
-		counter = counter + 1;
-		if (counter > 100) {
-			System.out.println("This type is: " + this.getFullQualifiedName() + ", and its super list: ");
-			if (superList != null) {
-				for (TypeReference superRef : superList) {
-					superRef.resolveBinding();
-					DetailedTypeDefinition superDef = (DetailedTypeDefinition)superRef.getDefinition();
-					System.out.println("\tSuper " + superRef.getName() + ", its definition: " + superDef.getFullQualifiedName());
-					
-					List<TypeReference> superSuperList = superDef.superList;
-					System.out.println("Super's super: ");
-					for (TypeReference superSuperRef : superSuperList) {
-						superSuperRef.resolveBinding();
-						System.out.println(superSuperRef.getName() + ", and its definition: " + superSuperRef.getDefinition().getFullQualifiedName());
-					}
-				}
-			}
-			
-			throw new AssertionError("More sub-type!!!");
-		} else if (counter > 50) {
-			System.out.println("Counter " + counter + ", check " + this.fullQualifiedName + " is sub-type of " + parent.fullQualifiedName);
-		}
-*/
-
-		if (superList != null) {
-			// Match the definition in the super list!
-			for (TypeReference superType : superList) {
-				if (!superType.isResolved()) superType.resolveBinding();
-				if (superType.getDefinition() == parent) return true;
-			}
-			// If do match the definition in the super list, recursively judge the super type of the current type 
-			// is the sub-type of parent
-			for (TypeReference superType : superList) {
-				TypeDefinition superDef = (TypeDefinition)superType.getDefinition();
-				if (superDef != null) {
-					if (superDef.isSubtypeOf(parent)) return true;
-				}
-			}
-			return false;
-		} else return matchSubtypeRelationsOfSimpleTypes(simpleName, parent.getSimpleName());
+	public boolean addInitializer(LocalScope initializer) {
+		if (initializerList == null) initializerList = new ArrayList<LocalScope>();
+		return initializerList.add(initializer);
+	}
+	
+	public List<LocalScope> getInitializerList() {
+		return initializerList;
 	}
 
 	@Override
 	public void addReference(NameReference reference) {
 		if (reference == null) return;
-		if (references == null) references = new ArrayList<NameReference>();
-		references.add(reference);
+		if (referenceList == null) referenceList = new ArrayList<NameReference>();
+		referenceList.add(reference);
 		
-	}
-
-	@Override
-	public List<NameReference> getReferences() {
-		return references;
-	}
-
-	@Override
-	public void printReferences(PrintWriter writer, boolean includeLiteral) {
-		StringBuffer buffer = new StringBuffer();
-		if (references != null) {
-			buffer.append("\nReferences in scope " + getScopeName() + "\n");
-			for (NameReference reference : references) {
-				buffer.append(reference.referenceToString(0, includeLiteral));
-			}
-		}
-		writer.print(buffer);
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				subscope.printReferences(writer, includeLiteral);
-			}		
-		}
-	}
-
-	@Override
-	public void printDefinitions(PrintWriter writer, int indent) {
-		StringBuffer buffer = new StringBuffer();
-
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-		
-		if (isInterface) buffer.append(indentString + "Interface: ");
-		else buffer.append(indentString + "Class ");
-		buffer.append(simpleName + "\n");
-		
-		if (superList != null) {
-			buffer.append(indentString + "\t Super types: ");
-			for (TypeReference reference : superList) {
-				buffer.append(reference.getName() + " ");
-			}
-			buffer.append("\n");
-		}
-		writer.print(buffer);
-		
-		if (fieldList != null) {
-			for (FieldDefinition field : fieldList) {
-				field.printDefinitions(writer, indent+1);
-			}
-		}
-		
-		if (methodList != null) {
-			for (MethodDefinition method : methodList) {
-				method.printDefinitions(writer, indent+1);
-			}
-		}
-		
-		if (typeList != null) {
-			for (DetailedTypeDefinition type : typeList) {
-				type.printDefinitions(writer, indent+1);
-			}
-		}
-	}
-	
-	@Override
-	public List<NameDefinition> findAllDefinitionsByName(String namePostFix) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (fieldList != null) {
-			for (FieldDefinition field : fieldList) {
-				if (field.match(namePostFix)) result.add(field);
-			}
-		}
-		if (methodList != null) {
-			for (MethodDefinition method : methodList) {
-				if (method.match(namePostFix)) result.add(method);
-			}
-		}
-		if (typeList != null) {
-			for (TypeDefinition typeDef : typeList) {
-				if (typeDef.match(namePostFix)) result.add(typeDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByName(namePostFix);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByName(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameScope> findAllSubScopesByName(String name) {
-		List<NameScope> result = new ArrayList<NameScope>();
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				if (subscope.getScopeName().equals(name)) result.add(subscope);
-				List<NameScope> temp = subscope.findAllSubScopesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public NameDefinition getDefinition(String id, boolean includeSubscopes) {
-		if (fieldList != null) {
-			for (FieldDefinition field : fieldList) {
-				if (field.match(id)) return field;
-			}
-		}
-		if (methodList != null) {
-			for (MethodDefinition method : methodList) {
-				if (method.match(id)) return method;
-			}
-		}
-		if (typeList != null) {
-			for (TypeDefinition type : typeList) {
-				if (type.match(id)) return type;
-			}
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.getDefinition(id, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public NameDefinition findDefinitionById(String id, boolean includeSubscopes) {
-		if (fieldList != null) {
-			for (FieldDefinition field : fieldList) {
-				if (id.contains("events@151:17")) {
-					System.out.println("\tBefore match field " + field.getUniqueId() + " in type "  + fullQualifiedName + " for " + id);
-				}
-				if (id.equals(field.getUniqueId())) return field;
-			}
-		}
-		if (methodList != null) {
-			for (MethodDefinition method : methodList) {
-				if (id.equals(method.getUniqueId())) return method;
-			}
-		}
-		if (typeList != null) {
-			for (TypeDefinition type : typeList) {
-				if (id.equals(type.getUniqueId())) return type;
-			}
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-//					if (id.contains("events@151:17")) {
-//						System.out.println("\tBefore find in type "  + fullQualifiedName + " subscope " + subscope.getScopeName() + " for " + id);
-//					}
-					NameDefinition target = subscope.findDefinitionById(id, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public List<NameReference> getReferences(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public boolean isEnclosedInScope(NameScope ancestorScope) {
-		NameScope parent = getEnclosingScope();
-		while (parent != null) {
-			if (parent == ancestorScope) return true;
-			parent = parent.getEnclosingScope();
-		}
-		return false;
-	}
-
-	@Override
-	public List<NameDefinition> findAllDefinitionsByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (fieldList != null) {
-			for (FieldDefinition field : fieldList) {
-				SourceCodeLocation location = field.getLocation();
-				if (location.isBetween(start, end)) result.add(field);
-			}
-		}
-		if (methodList != null) {
-			for (MethodDefinition method : methodList) {
-				SourceCodeLocation location = method.getLocation();
-				if (location.isBetween(start, end)) result.add(method);
-			}
-		}
-		if (typeList != null) {
-			for (TypeDefinition typeDef : typeList) {
-				SourceCodeLocation location = typeDef.getLocation();
-				if (location.isBetween(start, end)) result.add(typeDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				SourceCodeLocation location = reference.getLocation();
-				if (location.isBetween(start, end)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public List<DetailedTypeDefinition> getAllDetailedTypeDefinition() {
-		List<DetailedTypeDefinition> result = new ArrayList<DetailedTypeDefinition>();
-
-		if (typeList != null) {
-			for (DetailedTypeDefinition type : typeList) result.add(type);
-		}
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<DetailedTypeDefinition> temp = subscope.getAllDetailedTypeDefinition();
-				result.addAll(temp);
-			}
-		}
-		return result;
 	}
 	
 	/**
@@ -608,30 +280,6 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 	 */
 	public SourceCodeLocation getEndLocation() {
 		return endLocation;
-	}
-	
-	@Override
-	public int getTotalNumberOfDefinitions(NameDefinitionKind kind) {
-		int result = 0;
-		
-		if (kind == NameDefinitionKind.NDK_UNKNOWN || kind == NameDefinitionKind.NDK_FIELD) {
-			if (fieldList != null) result += fieldList.size();
-		}
-		
-		if (kind == NameDefinitionKind.NDK_UNKNOWN || kind == NameDefinitionKind.NDK_TYPE) {
-			if (typeList != null) result += typeList.size();
-		}
-
-		if (kind == NameDefinitionKind.NDK_UNKNOWN || kind == NameDefinitionKind.NDK_METHOD) {
-			if (methodList != null) result += methodList.size();
-		}
-
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) result += subscope.getTotalNumberOfDefinitions(kind);
-		}
-		
-		return result;
 	}
 	
 	@Override
@@ -643,6 +291,10 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		
 		boolean visitSubscope = visitor.visit(this);
 
+		if (visitSubscope == true && initializerList != null) {
+			for (LocalScope initializer : initializerList) initializer.accept(visitor);
+		}
+		
 		if (visitSubscope == true && typeList != null) {
 			for (DetailedTypeDefinition type : typeList) type.accept(visitor);
 		}
@@ -660,7 +312,7 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 	 * Set the modifier flag 
 	 */
 	public void setModifierFlag(int flag) {
-		this.flag = flag;
+		this.modifier = flag;
 	}
 	
 	/**
@@ -668,49 +320,74 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 	 */
 	@Override
 	public boolean isPublic() {
-		return Modifier.isPublic(flag);
+		return Modifier.isPublic(modifier);
 	}
 
 	/**
 	 * Test if the class is private according to the modifier flag
 	 */
 	public boolean isPrivate() {
-		return Modifier.isPrivate(flag);
+		return Modifier.isPrivate(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isProtected() {
-		return Modifier.isProtected(flag);
+		return Modifier.isProtected(modifier);
 	}
 
 	/**
 	 * Test if the class is static according to the modifier flag
 	 */
 	public boolean isStatic() {
-		return Modifier.isStatic(flag);
+		return Modifier.isStatic(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isFinal() {
-		return Modifier.isFinal(flag);
+		return Modifier.isFinal(modifier);
 	}
 
 	/**
 	 * Test if the class is abstract according to the modifier flag
 	 */
 	public boolean isAbstract() {
-		return Modifier.isAbstract(flag);
+		return Modifier.isAbstract(modifier);
 	}
 
-	public void setCorrespondingFile(String filePath) {
-		this.filePath = filePath;
+	/**
+	 * Test if the class is anonymous
+	 */
+	public boolean isAnonymous() {
+		return false;
 	}
 	
-	public String getCorrespondingFilePath() {
-		return filePath;
+	@Override
+	public SourceCodeLocation getScopeStart() {
+		return getLocation();
+	}
+
+	@Override
+	public SourceCodeLocation getScopeEnd() {
+		// TODO Auto-generated method stub
+		return endLocation;
+	}
+
+	@Override
+	public boolean isEnclosedInScope(NameScope ancestorScope) {
+		NameScope parent = getEnclosingScope();
+		while (parent != null) {
+			if (parent == ancestorScope) return true;
+			parent = parent.getEnclosingScope();
+		}
+		return false;
+	}
+	
+	@Override
+	public List<NameReference> getReferenceList() {
+		return referenceList;
 	}
 }

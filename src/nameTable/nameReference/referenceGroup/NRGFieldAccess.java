@@ -5,7 +5,7 @@ import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to field access expression. 
@@ -13,12 +13,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGFieldAccess extends NameReferenceGroup {
-
-	public NRGFieldAccess(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
 
 	public NRGFieldAccess(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -39,7 +38,7 @@ public class NRGFieldAccess extends NameReferenceGroup {
 		// the first expression, which should be binded to a type definition!
 		NameReference firstRef = subreferences.get(0);
 		firstRef.resolveBinding();
-		TypeDefinition typeDef = getResultTypeDefinition(firstRef);
+		TypeDefinition typeDef = firstRef.getResultTypeDefinition();
 		NameReference fieldRef = subreferences.get(1);
 		if (typeDef !=  null) typeDef.resolve(fieldRef);
 

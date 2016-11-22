@@ -20,9 +20,9 @@ import util.Debug;
 public class QualitasPathsManager {
 	public static final String pathSeparator = "\\";
 	public static final String defaultOriginalPath = "C:\\Qualitas\\QualitasCorpus-20130901r\\Systems\\";
-	public static final String defaultRootPath = "F:\\QualitasPacking\\recent\\";
-	public static final String defaultResultPath = "F:\\QualitasPacking\\result\\recent\\";
-	public static final String defaultDebugPath = "E:\\ZxcWork\\ProgramAnalysis\\data\\";
+	public static final String defaultRootPath = "C:\\QualitasPacking\\recent\\";
+	public static final String defaultResultPath = "C:\\QualitasPacking\\result\\recent\\";
+	public static final String defaultDebugPath = "C:\\ZxcWork\\ProgramAnalysis\\data\\";
 	
 	public static String getSystemPath(String systemName, String version, String rootPath) {
 		String mainDirectory = getSystemVersionMainDirectory(systemName, version);

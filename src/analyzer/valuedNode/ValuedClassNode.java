@@ -1,8 +1,12 @@
 package analyzer.valuedNode;
 
 import softwareChange.NameTableComparator;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 import nameTable.NameTableManager;
+import nameTable.filter.DetailedTypeDefinitionFilter;
+import nameTable.filter.NameDefinitionLocationFilter;
+import nameTable.filter.NameDefinitionNameFilter;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.NameDefinition;
 
@@ -45,7 +49,8 @@ public class ValuedClassNode extends ValuedNode {
 		String locationString = parseLocationString();
 		SourceCodeLocation location = SourceCodeLocation.getLocation(locationString);
 		
-		definition = table.findDetailedTypeDefinitionByLocation(simpleName, location);
+		NameTableFilter filter = new DetailedTypeDefinitionFilter(new NameDefinitionNameFilter(new NameDefinitionLocationFilter(location), simpleName));
+		definition = table.findDefinitionByFilter(filter);
 	}
 	
 	/**

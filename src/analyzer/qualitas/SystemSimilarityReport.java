@@ -15,8 +15,8 @@ import nameTable.nameDefinition.PackageDefinition;
 import softwareChange.ClassChangeIndicator;
 import softwareChange.NameTableComparator;
 import softwareChange.NodeChangeIndicator;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -60,14 +60,14 @@ public class SystemSimilarityReport {
 	}
 	
 	public static void generateChangeIndicator(String versionOne, String pathOne, String versionTwo, String pathTwo, String indicatorFile) throws IOException {
-		SourceCodeParser parser = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parser = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
 		NameTableManager managerOne = creator.createNameTableManager();
 		Debug.time("End creating.....");
 		
-		parser = new SourceCodeParser(pathTwo);
+		parser = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -79,7 +79,7 @@ public class SystemSimilarityReport {
 	}
 
 	public static void reportSimilarityAtPackageLevel(String pathOne, String pathTwo, PrintWriter report) {
-		SourceCodeParser parser = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parser = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -88,7 +88,7 @@ public class SystemSimilarityReport {
 		Debug.println("\r\nPackage list of the system = " + pathOne);
 		writeAllPackagesToDebugger(managerOne);
 		
-		parser = new SourceCodeParser(pathTwo);
+		parser = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -101,7 +101,7 @@ public class SystemSimilarityReport {
 	}
 
 	public static void reportSimilarityAtDetailedTypeLevel(String pathOne, String pathTwo, PrintWriter report) {
-		SourceCodeParser parser = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parser = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -110,7 +110,7 @@ public class SystemSimilarityReport {
 		Debug.println("\r\nDetailed type list of the system = " + pathOne);
 		writeAllDetailedTypesToDebugger(managerOne);
 		
-		parser = new SourceCodeParser(pathTwo);
+		parser = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -130,7 +130,7 @@ public class SystemSimilarityReport {
 	}
 
 	public static void writeAllDetailedTypesToDebugger(NameTableManager manager) {
-		List<DetailedTypeDefinition> definitionList = manager.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> definitionList = manager.getSystemScope().getAllDetailedTypeDefinitions();
 		for (DetailedTypeDefinition definition : definitionList) {
 			Debug.println(definition.getFullQualifiedName());
 		}

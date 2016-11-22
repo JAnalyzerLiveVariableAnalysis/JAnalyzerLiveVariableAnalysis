@@ -4,7 +4,7 @@ import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to array creation expression. 
@@ -12,12 +12,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGArrayCreation extends NameReferenceGroup {
-
-	public NRGArrayCreation(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
 
 	public NRGArrayCreation(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);

@@ -10,21 +10,21 @@ import java.util.List;
 import analyzer.dataTable.DataTableManager;
 import analyzer.valuedNode.ValuedClassNode;
 import analyzer.valuedNode.ValuedNodeManager;
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import softwareMeasurement.ClassMeasurement;
 import softwareMeasurement.measure.MeasureObjectKind;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -121,12 +121,12 @@ public class ClassMetricCollector {
 	}
 	
 	public static void modifyQualitasDetailedTypeMeasure(String systemPath, DataTableManager metricDataManager, List<SoftwareMeasure> measureList) {
-		SourceCodeParser parser = new SourceCodeParser(systemPath);
+		SourceCodeFileSet parser = new SourceCodeFileSet(systemPath);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.time("Begin creating system, path = " + systemPath);
 		Debug.disable();
-		NameTableManager manager = creator.createNameTableManager(true);
+		NameTableManager manager = creator.createNameTableManager();
 		Debug.enable();
 		Debug.time("End creating.....");
 		Debug.flush();
@@ -141,7 +141,7 @@ public class ClassMetricCollector {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -150,7 +150,7 @@ public class ClassMetricCollector {
 //		Debug.disable();
 		int counter = 1;
 		int totalCounter = definitionList.size();
-		List<DetailedTypeDefinition> allTypes = rootScope.getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> allTypes = rootScope.getAllDetailedTypeDefinitions();
 		
 		System.out.println("total = " + totalCounter + ", all types size = " + allTypes.size());
 		
@@ -290,12 +290,12 @@ public class ClassMetricCollector {
 	public static void collectQualitasDetailedTypeMeasure(String systemPath, PrintWriter resultWriter) {
 		List<SoftwareMeasure> measureList = getAvailableDetailedTypeMeasureList();
 
-		SourceCodeParser parser = new SourceCodeParser(systemPath);
+		SourceCodeFileSet parser = new SourceCodeFileSet(systemPath);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.time("Begin creating system, path = " + systemPath);
 		Debug.disable();
-		NameTableManager manager = creator.createNameTableManager(true);
+		NameTableManager manager = creator.createNameTableManager();
 		Debug.enable();
 		Debug.time("End creating.....");
 		Debug.flush();
@@ -311,7 +311,7 @@ public class ClassMetricCollector {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -324,7 +324,7 @@ public class ClassMetricCollector {
 		Debug.disable();
 		int counter = 1;
 		int totalCounter = definitionList.size();
-		List<DetailedTypeDefinition> allTypes = rootScope.getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> allTypes = rootScope.getAllDetailedTypeDefinitions();
 		
 		Debug.println("total = " + totalCounter + ", all types size = " + allTypes.size());
 		
@@ -352,7 +352,7 @@ public class ClassMetricCollector {
 	}
 		
 	public static ValuedNodeManager collectQualitasDetailedTypeMeasure(String systemPath, SoftwareMeasure measure) {
-		SourceCodeParser parser = new SourceCodeParser(systemPath);
+		SourceCodeFileSet parser = new SourceCodeFileSet(systemPath);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + systemPath);
@@ -364,7 +364,7 @@ public class ClassMetricCollector {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -375,7 +375,7 @@ public class ClassMetricCollector {
 		for (NameDefinition definition : definitionList) {
 			DetailedTypeDefinition type = (DetailedTypeDefinition)definition;
 			String id = type.getFullQualifiedName();
-			String label = type.getSimpleName() + "@" + type.getLocation().toFullString(); 
+			String label = type.getSimpleName() + "@" + type.getLocation().getUniqueId(); 
 			ValuedClassNode node = new ValuedClassNode(id, label);
 			node.setDefinition(type);
 			
@@ -535,7 +535,7 @@ class DetailedTypeFilter extends NameTableFilter {
 		if (!definition.isDetailedType()) return false;	
 		DetailedTypeDefinition type = (DetailedTypeDefinition)definition;
 //		if (!type.isPackageMember() || !type.isPublic()) return false;
-		if (!type.isPackageMember() || type.isInterface() || type.isEnumeration()) return false;
+		if (!type.isPackageMember() || type.isInterface() || type.isEnumType()) return false;
 		return true;
 //		if (definition.getSimpleName().contains("DetailedTypeFilter")) return true;
 //		else return false;

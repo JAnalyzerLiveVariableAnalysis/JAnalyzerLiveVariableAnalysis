@@ -6,11 +6,10 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
@@ -18,6 +17,7 @@ import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import softwareMeasurement.measure.ClassMeasureDistribution;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
@@ -25,7 +25,7 @@ import softwareMeasurement.metric.SoftwareStructMetric;
 import softwareMeasurement.metric.SoftwareStructMetricFactory;
 import softwareStructure.SoftwareStructManager;
 import util.Debug;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
 
 /**
  * @author Zhou Xiaocong
@@ -87,7 +87,7 @@ public class TestSystemMeasurementManager {
 	public static void testCompilationUnitMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getAvailableSoftwareSizeMeasureList();
 
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -98,17 +98,19 @@ public class TestSystemMeasurementManager {
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		List<CompilationUnitScope> unitList = manager.getAllCompilationUnitScopes();
 
-		writer.print("File ");
+		writer.print("CompilationUnit");
 		for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.getIdentifier());
-		writer.println("Notes");
+		writer.println("Package");
 		
 		Debug.setStart("Begin scan unit....");
 		for (CompilationUnitScope unit : unitList) {
 			System.out.println("Scan unit file: " + unit.getScopeName());
 			
 			CompilationUnitMeasurement measurement = new CompilationUnitMeasurement(unit, structManager);
-			measurement.getMeasureList(measureList);
-			measurement.printToRow(writer, false);
+			measureList = measurement.getMeasureList(measureList);
+			writer.print(unit.getUnitName());
+			for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.valueString());
+			writer.println("\t" + unit.getEnclosingPackage().getFullQualifiedName());
 		}
 		Debug.time("End scan.....");
 		
@@ -119,7 +121,7 @@ public class TestSystemMeasurementManager {
 	public static void testDetailedTypeMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getTestingMeasureList();
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.time("Begin creating system, path = " + path);
@@ -136,7 +138,7 @@ public class TestSystemMeasurementManager {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -168,7 +170,7 @@ public class TestSystemMeasurementManager {
 	public static void testPackageMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getTestingMeasureList();
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -180,7 +182,7 @@ public class TestSystemMeasurementManager {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new PackageFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -198,7 +200,11 @@ public class TestSystemMeasurementManager {
 			Debug.setStart("Begin calculating measures....!");
 			PackageMeasurement measurement = new PackageMeasurement(packageDef, structManager);
 			measurement.getMeasureList(measureList);
-			measurement.printToRow(writer, false);
+			
+			writer.print(packageDef.getFullQualifiedName());
+			for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.valueString());
+			writer.println(packageDef.getUniqueId());
+			
 			Debug.time("End calculating....");
 		}
 		Debug.time("End scan.....");
@@ -207,7 +213,7 @@ public class TestSystemMeasurementManager {
 	public static void testMethodMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getTestingMeasureList();
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -219,14 +225,14 @@ public class TestSystemMeasurementManager {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new MethodDefinitionFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
 		writer.print("Method");
 		for (SoftwareMeasure measure : measureList) writer.print("\t" + SoftwareMeasureIdentifier.getDescription(measure));
-		writer.println("Notes");
+		writer.println("\tClass\tPackage\tLabel");
 		
 		Debug.setStart("Begin scan method....");
 		for (NameDefinition definition : definitionList) {
@@ -237,7 +243,11 @@ public class TestSystemMeasurementManager {
 			Debug.setStart("Begin calculating measures....!");
 			MethodMeasurement measurement = new MethodMeasurement(method, structManager);
 			measurement.getMeasureList(measureList);
-			measurement.printToRow(writer, false);
+
+			writer.print(method.getSimpleName());
+			for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.valueString());
+			writer.println("\t" + method.getEnclosingType().getSimpleName() + "\t" + method.getEnclosingType().getEnclosingPackage().getSimpleName() + "\t" + method.getUniqueId());
+
 			Debug.time("End calculating....");
 		}
 		Debug.time("End scan.....");
@@ -254,7 +264,7 @@ public class TestSystemMeasurementManager {
 		for (int index = 0; index < versionPaths.length; index++) {
 			String path = systemPath + versionPaths[index] + "\\" + mainDir + "\\";
 			
-			SourceCodeParser parser = new SourceCodeParser(path);
+			SourceCodeFileSet parser = new SourceCodeFileSet(path);
 			NameTableCreator creator = new NameDefinitionCreator(parser);
 
 			Debug.setStart("Begin creating system, path = " + path);
@@ -262,7 +272,7 @@ public class TestSystemMeasurementManager {
 			Debug.time("End creating.....");
 			Debug.flush();
 			SoftwareStructManager structManager = new SoftwareStructManager(manager);
-			SystemScope rootScope = manager.getRootScope();
+			SystemScope rootScope = manager.getSystemScope();
 
 			Debug.setStart("Begin calculating measures....!");
 			SystemScopeMeasurement measurement = new SystemScopeMeasurement(rootScope, structManager);
@@ -277,7 +287,7 @@ public class TestSystemMeasurementManager {
 	
 
 	public static void testMeasureDistribution(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -291,7 +301,7 @@ public class TestSystemMeasurementManager {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 
 		SoftwareMeasure measure = new SoftwareMeasure(SoftwareMeasureIdentifier.STMN);
 		SoftwareStructMetric metric = SoftwareStructMetricFactory.getMetricInstance(measure);

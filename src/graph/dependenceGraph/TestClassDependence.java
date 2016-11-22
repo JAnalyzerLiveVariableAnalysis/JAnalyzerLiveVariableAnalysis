@@ -12,8 +12,8 @@ import java.io.PrintWriter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -86,7 +86,7 @@ public class TestClassDependence {
 			exc.printStackTrace();
 		}
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -99,7 +99,7 @@ public class TestClassDependence {
 		ClassDependenceGraph CDG = CDGCreator.create();
 		Debug.time("End creating CDG....");
 
-		parser.releaseAllCompilatinUnits();
+		parser.releaseAllASTs();
 		parser.releaseAllFileContents();
 		manager = null;
 		parser = null;
@@ -160,7 +160,7 @@ public class TestClassDependence {
 				exc.printStackTrace();
 			}
 			
-			SourceCodeParser parser = new SourceCodeParser(path);
+			SourceCodeFileSet parser = new SourceCodeFileSet(path);
 			NameTableCreator creator = new NameDefinitionCreator(parser);
 
 			Debug.setStart("Begin creating system, path = " + path);
@@ -181,7 +181,7 @@ public class TestClassDependence {
 				}
 			} else System.out.println("Class dependence graph is a null graph!");
 			
-			parser.releaseAllCompilatinUnits();
+			parser.releaseAllASTs();
 			parser.releaseAllFileContents();
 			manager = null;
 			parser = null;

@@ -2,6 +2,7 @@ package softwareMeasurement.metric.size;
 
 import java.util.List;
 
+import nameTable.NameTableASTBridge;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.PackageDefinition;
@@ -64,6 +65,9 @@ import softwareStructure.SoftwareStructManager;
  * @author Zhou Xiaocong
  * @since 2015Äê7ÔÂ8ÈÕ
  * @version 1.0
+ * 
+ * @update 2016/11/14
+ * 		Use NameTableASTBridge to find AST node for compilation unit scope, detailed type definition and method definition.
  */
 public class StatementCounterMetric extends SoftwareSizeMetric {
 	private StatementCounter counter = new StatementCounter();
@@ -73,7 +77,7 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 		if (structManager != this.structManager) {
 			this.structManager = structManager;
 			tableManager = structManager.getNameTableManager();
-			parser = tableManager.getSouceCodeParser();
+			parser = tableManager.getSouceCodeFileSet();
 			
 			counter.reset();
 		}
@@ -130,7 +134,8 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 	}
 
 	protected int counterCompilationUnitStatement(CompilationUnitScope unit) {
-		CompilationUnit root = tableManager.findDeclarationForCompilatinoUnitScope(unit);
+		NameTableASTBridge bridge = new NameTableASTBridge(tableManager);
+		CompilationUnit root = bridge.findASTNodeForCompilationUnitScope(unit);
 		if (root == null) return 0;
 
 		counter.reset();
@@ -138,14 +143,14 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 		
 		// Release the memory in the parser. When can findDeclarationForCompilationUnitScope, it will load 
 		// file contents and AST to the memory.
-		parser.releaseCurrentCompilatinUnits();
-		parser.releaseCurrentFileContents();
+		parser.releaseAST(unit.getUnitName());
+		parser.releaseFileContent(unit.getUnitName());
 		
 		return counter.getTotalNumber();
 	}
 
 	protected int counterPackageStatement(PackageDefinition packageDefinition) {
-		List<CompilationUnitScope> unitList = packageDefinition.getCompilationUnitList();
+		List<CompilationUnitScope> unitList = packageDefinition.getCompilationUnitScopeList();
 		int totalNumber = 0;
 		if (unitList == null) return totalNumber;
 
@@ -156,7 +161,8 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 	}
 
 	protected int counterClassStatement(DetailedTypeDefinition type) {
-		TypeDeclaration typeDeclaration = tableManager.findDeclarationForDetailedType(type);
+		NameTableASTBridge bridge = new NameTableASTBridge(tableManager);
+		TypeDeclaration typeDeclaration = bridge.findASTNodeForDetailedTypeDefinition(type);
 		if (typeDeclaration == null) return 0;
 		
 		counter.reset();
@@ -165,7 +171,8 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 	}
 	
 	protected int counterMethodStatement(MethodDefinition method) {
-		MethodDeclaration methodDeclaration = tableManager.findDeclarationForMethodDefinition(method);
+		NameTableASTBridge bridge = new NameTableASTBridge(tableManager);
+		MethodDeclaration methodDeclaration = bridge.findASTNodeForMethodDefinition(method);
 		if (methodDeclaration == null) return 0;
 
 		counter.reset();

@@ -2,26 +2,26 @@ package analyzer.qualitas;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.LineNumberReader;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Scanner;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
+import nameTable.creator.NameReferenceCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
-import nameTable.nameDefinition.EnumTypeDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.TypeDefinition;
+import nameTable.nameReference.NameReference;
 import nameTable.nameScope.CompilationUnitScope;
-import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionPrinter;
+import nameTable.visitor.NameDefinitionVisitor;
+import sourceCodeAST.SourceCodeFile;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -48,7 +48,7 @@ public class NameTableTester {
 		String[] systemNames = QualitasPathsManager.getSystemNames();
 		int[] errorUnits = new int[systemNames.length];
 		Debug.setScreenOn();
-		for (int index = 0; index < systemNames.length; index++) {
+		for (int index = 0; index < systemNames.length-1; index++) {
 			errorUnits[index] = testNameTableCreator(systemNames[index]);
 		}
 		Debug.println("The following are systems which have compiling errors!");
@@ -62,6 +62,10 @@ public class NameTableTester {
 	}
 	
 	public static int testNameTableCreator(String systemName) {
+		if (systemName.equals("eclipse_SDK") || systemName.equals("jre")) return 0;
+		
+		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+		
 		String[] versions = QualitasPathsManager.getSystemVersions(systemName);
 		int totalErrorUnitNumber = 0;
 		
@@ -69,28 +73,38 @@ public class NameTableTester {
 			String path = QualitasPathsManager.getSystemPath(systemName, versions[index]);
 			String errorFileName = path + "error.txt";
 			String typeListFileName = path + "typelist.txt"; 
+			String definitionFileName = path + "definition.txt";
+			String referenceFileName = path + "reference.txt";
 			
-			SourceCodeParser parser = new SourceCodeParser(path);
+			SourceCodeFileSet parser = new SourceCodeFileSet(path);
 			NameTableCreator creator = new NameDefinitionCreator(parser);
 
 			Debug.println("System, path = " + path);
 			try {
-				PrintWriter writer = new PrintWriter(new File(errorFileName));
-				writer.println("File\tMessage");
-				creator.setErrorReporter(writer);
-				NameTableManager manager = creator.createNameTableManager(false);
-				int errorUnitNumber = creator.getErrorUnitNumber();
-				if (errorUnitNumber > 1) {
-					Debug.println("There are " + errorUnitNumber + " ERROR compilation unit files!");
-				} else if (errorUnitNumber > 0) {
-					Debug.println("There is " + errorUnitNumber + " ERROR compilation unit file!");
+				NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
+				PrintWriter writer = null;
+				if (creator.hasError()) {
+					writer = new PrintWriter(new File(errorFileName));
+					int errorUnitNumber = creator.getErrorUnitNumber();
+					if (errorUnitNumber > 1) {
+						Debug.println("There are " + errorUnitNumber + " ERROR compilation unit files!");
+					} else if (errorUnitNumber > 0) {
+						Debug.println("There is " + errorUnitNumber + " ERROR compilation unit file!");
+					} 
+					totalErrorUnitNumber += errorUnitNumber;
+					creator.printErrorUnitList(writer);
+					writer.close();
 				} else {
 					Debug.println("There is no error compilation unit file!");
 				}
-				totalErrorUnitNumber += errorUnitNumber;
-				writer.close();
 				writer = new PrintWriter(new File(typeListFileName));
-				printNameDefinition(manager, writer);
+				printTypeDefinition(manager, writer);
+				writer.close();
+				writer = new PrintWriter(new File(definitionFileName));
+				printAllDefinitions(manager, writer);
+				writer.close();
+				writer = new PrintWriter(new File(referenceFileName));
+				printAllReferences(manager, writer);
 				writer.close();
 			} catch (AssertionError error) {
 				String message = error.getMessage();
@@ -103,16 +117,20 @@ public class NameTableTester {
 		return totalErrorUnitNumber;
 	}
 	
-	public static void printNameDefinition(NameTableManager manager, PrintWriter writer) {
-		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new NameDefinitionFilter());
-		SystemScope rootScope = manager.getRootScope();
-		
-		rootScope.accept(visitor);
+	public static void printTypeDefinition(NameTableManager manager, PrintWriter writer) {
+		NameDefinitionFilter filter = new NameDefinitionFilter();
+		NameDefinitionVisitor visitor = new NameDefinitionVisitor(filter);
+
+		manager.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
+		int size = definitionList.size();
+		int counter = 0;
 		
 		writer.println("Type\tSourceFile\tTopLevel");
 		for (NameDefinition definition : definitionList) {
+			Debug.println("Total type " + size + ", write type " + counter + ", " + definition.getFullQualifiedName());
+			counter++;
+			
 			TypeDefinition type = (TypeDefinition)definition;
 			CompilationUnitScope unitScope = manager.getEnclosingCompilationUnitScope(type);
 			String topLevel = "nontop";
@@ -120,8 +138,53 @@ public class NameTableTester {
 				if (type.isPublic()) topLevel = "public";
 				else topLevel = "top-nonpublic";
 			}
-			writer.println(type.getFullQualifiedName() + "\t" + unitScope.getUnitFullName() + "\t" + topLevel);
+			writer.println(type.getFullQualifiedName() + "\t" + unitScope.getUnitName() + "\t" + topLevel);
 		}
+	}
+	
+	public static void printAllDefinitions(NameTableManager manager, PrintWriter writer) throws IOException {
+		NameDefinitionPrinter printer = new NameDefinitionPrinter(writer);
+		printer.setPrintVariable(true);
+		manager.accept(printer);
+		printer.close();
+	}
+
+	public static void printAllReferences(NameTableManager manager, PrintWriter writer) throws IOException {
+		NameTableFilter filter = new NameDefinitionFilter();
+		NameDefinitionVisitor visitor = new NameDefinitionVisitor(filter);
+		manager.accept(visitor);
+		List<NameDefinition> typeList = visitor.getResult();
+		NameReferenceCreator referenceCreator = new NameReferenceCreator(manager);
+
+		Debug.time("Begin ....!");
+		int size = typeList.size();
+		int counter = 0;
+		writer.println("Type\tName\tLocation\tKind\tScope\tDefinition"); 
+		for (NameDefinition definition : typeList) {
+			DetailedTypeDefinition type = (DetailedTypeDefinition)definition;
+			Debug.println("Total type " + size + ", scan type " + counter + ", " + type.getFullQualifiedName());
+			counter++;
+			
+			List<NameReference> referenceList = referenceCreator.createReferences(type);
+			for (NameReference reference : referenceList) {
+				reference.resolveBinding();
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (leafReference.isLiteralReference()) continue;
+					
+					String name = leafReference.getName();
+					String location = leafReference.getLocation().toString();
+					String kind = leafReference.getReferenceKind() + "";
+					String scopeName = leafReference.getScope().getScopeName();
+					NameDefinition bindDef = leafReference.getDefinition();
+					
+					String bindString = "~~";
+					if (bindDef != null) bindDef.getUniqueId();
+					writer.println(type.getFullQualifiedName() + "\t" + name + "\t" + location + "\t" + kind + "\t" + scopeName + "\t" + bindString); 
+				}
+			}
+		}
+		Debug.time("End....!");
 	}
 	
 	private static int currentLineNumber = 0;
@@ -162,13 +225,13 @@ public class NameTableTester {
 			Debug.println("Scan files in path = " + path);
 			writer.println("Path: " + path);
 			
-			SourceCodeParser parser = new SourceCodeParser(path);
-			parser.toGetFirstParsedFile();
-			while (parser.hasParsedFileInfo()) {
-				String fileName = parser.getCurrentUnitFullName();
-				int lineNumber = parser.getCurrentFileLineNumber();
-				long spaces = parser.getCurrentFileSpaces();
-				File file = parser.getCurrentFile();
+			SourceCodeFileSet parser = new SourceCodeFileSet(path);
+			for (SourceCodeFile codeFile : parser) {
+				
+				String fileName = parser.getFileUnitName(codeFile);
+				int lineNumber = codeFile.getTotalLines();
+				long spaces = codeFile.getTotalSpaces();
+				File file = codeFile.getFileHandle();
 				long size = file.length();
 				
 				totalFiles++;
@@ -182,8 +245,6 @@ public class NameTableTester {
 					Debug.println("\tFile: " + fileName + ", load line: " + lineNumber + ", scan line: " + currentLineNumber);
 					problemFiles++;
 				}
-				
-				parser.toGetNextParsedFile();
 			}
 			Debug.println("Total files: " + totalFiles + ", problem files: " + problemFiles);
 			Debug.flush();
@@ -221,7 +282,7 @@ class NameDefinitionFilter extends NameTableFilter {
 	public boolean accept(NameDefinition definition) {
 		if (!definition.isTypeDefinition()) return false;
 		TypeDefinition type = (TypeDefinition)definition;
-		if (type.isDetailedType() || type.isEnumeration()) return true;	
+		if (type.isDetailedType() || type.isEnumType()) return true;	
 		return false;
 	}
 }

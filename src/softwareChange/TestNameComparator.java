@@ -12,7 +12,7 @@ import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.PackageDefinition;
 import util.Debug;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
 
 /**
  * @author Zhou Xiaocong
@@ -61,7 +61,7 @@ public class TestNameComparator {
 	}
 
 	public static void testSimilarityAtPackageLevel(String pathOne, String pathTwo, PrintWriter report) {
-		SourceCodeParser parser = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parser = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -70,7 +70,7 @@ public class TestNameComparator {
 		Debug.println("\r\nPackage list of the system = " + pathOne);
 		writeAllPackagesToDebugger(managerOne);
 		
-		parser = new SourceCodeParser(pathTwo);
+		parser = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -83,7 +83,7 @@ public class TestNameComparator {
 	}
 
 	public static void testSimilarityAtDetailedTypeLevel(String pathOne, String pathTwo, PrintWriter report) {
-		SourceCodeParser parser = new SourceCodeParser(pathOne);
+		SourceCodeFileSet parser = new SourceCodeFileSet(pathOne);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathOne);
@@ -92,7 +92,7 @@ public class TestNameComparator {
 		Debug.println("\r\nDetailed type list of the system = " + pathOne);
 		writeAllDetailedTypesToDebugger(managerOne);
 		
-		parser = new SourceCodeParser(pathTwo);
+		parser = new SourceCodeFileSet(pathTwo);
 		creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + pathTwo);
@@ -112,7 +112,7 @@ public class TestNameComparator {
 	}
 
 	public static void writeAllDetailedTypesToDebugger(NameTableManager manager) {
-		List<DetailedTypeDefinition> definitionList = manager.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> definitionList = manager.getSystemScope().getAllDetailedTypeDefinitions();
 		for (DetailedTypeDefinition definition : definitionList) {
 			Debug.println(definition.getFullQualifiedName());
 		}

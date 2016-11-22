@@ -29,7 +29,7 @@ public class TypeCounterMetric extends SoftwareSizeMetric {
 		List<DetailedTypeDefinition> typeList = structManager.getAllDetailedTypeDefinition();
 		for (DetailedTypeDefinition type : typeList) {
 			if (objectScope != null) {
-				if (type.getEnclosingPackage() == objectScope || objectScope == structManager.getNameTableManager().getRootScope()) {
+				if (type.getEnclosingPackage() == objectScope || objectScope == structManager.getNameTableManager().getSystemScope()) {
 					if (type.isPackageMember()) {
 						if (type.isPublic()) topPublicType++;
 						else topNonPublicType++;
@@ -47,7 +47,7 @@ public class TypeCounterMetric extends SoftwareSizeMetric {
 		List<EnumTypeDefinition> enumList = structManager.getAllEnumTypeDefinition();
 		for (EnumTypeDefinition type : enumList) {
 			if (objectScope != null) {
-				if (type.getEnclosingPackage() == objectScope || objectScope == structManager.getNameTableManager().getRootScope()) {
+				if (type.getEnclosingPackage() == objectScope || objectScope == structManager.getNameTableManager().getSystemScope()) {
 					if (type.isPackageMember()) {
 						if (type.isPublic()) topPublicType++;
 						else topNonPublicType++;

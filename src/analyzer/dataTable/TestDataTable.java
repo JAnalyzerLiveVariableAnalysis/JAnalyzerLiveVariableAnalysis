@@ -132,15 +132,15 @@ public class TestDataTable {
 
 	public static void testWriteDataLineToLatex() {
 		String dataPath = "C:\\ZxcWork\\ProgramAnalysis\\data\\";
-		String dataFile = dataPath + "temp.txt";
-		String resultFile = dataPath + "result.txt";
+		String dataFile = dataPath + "result.txt";
+		String resultFile = dataPath + "temp.txt";
 //		String[] columnNames = {"Metrics", "Min", "Q1", "Median", "Q3", "Max", "Sum", "Mean", "Sd", "Skew", "Kurt", "CV", "Gini" };
 //		String[] columnNames = {"Metrics", "Len", "Median", "Mean", "Sd", "Skew", "Kurt", "CV", "Gini" };
 //		String[] columnNames = {"Class", "FLD", "MTHD", "ELOC", "ALLMTHD", "IMPMTHD", "ALLFLD", "IHFLD" };
 //		String[] columnNames = {"Class", "Reason"};
 //		String[] columnNames = {"MetricA", "MetricB", "Cor"};
 //		String[] columnNames = {"Fields", "Log", "Num", "Mean", "Sd", "Sd2", "Num2", "Sd3", "Num3" };
-		String[] columnNames = {"Version", "Domain", "Notes"};
+//		String[] columnNames = {"Version", "Domain", "Notes"};
 		
 		DataTableManager manager = new DataTableManager("Metric");
 		try {
@@ -148,7 +148,7 @@ public class TestDataTable {
 			Debug.println("line number = " + manager.getLineNumber() + ", column number = " + manager.getColumnNumber());
 			
 			PrintWriter writer = new PrintWriter(new FileOutputStream(resultFile));
-			DataTableUtil.writeDataLinesAsLatexTableLines(writer, manager, null, 1);
+			DataTableUtil.writeDataLinesAsLatexTableLines(writer, manager, null, 2);
 			writer.close();
 		} catch (Exception exec) {
 			exec.printStackTrace();

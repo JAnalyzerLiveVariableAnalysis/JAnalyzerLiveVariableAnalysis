@@ -6,22 +6,22 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import nameTable.NameScopeFilter;
-import nameTable.NameScopeVisitor;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameScopeFilter;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameScopeVisitor;
 import softwareMeasurement.CompilationUnitMeasurement;
 import softwareMeasurement.measure.MeasureObjectKind;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -63,7 +63,7 @@ public class CompilationUnitMetricCollector {
 	public static void collectQualitasCompilationUnitMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getAvailableCompilationUnitMeasureList();
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -76,25 +76,27 @@ public class CompilationUnitMetricCollector {
 		
 		NameScopeVisitor visitor = new NameScopeVisitor();
 		visitor.setFilter(new CompilationUnitFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameScope> scopeList = visitor.getResult();
 		
-		writer.print("File");
-		for (SoftwareMeasure measure : measureList) writer.print("\t" + SoftwareMeasureIdentifier.getDescription(measure));
-		writer.println("\tNotes");
+		writer.print("CompilationUnit");
+		for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.getIdentifier());
+		writer.println("\tPackage");
 		
 		Debug.setStart("Begin scan class....");
 		for (NameScope scope : scopeList) {
 			CompilationUnitScope unit = (CompilationUnitScope)scope;
 			
-			System.out.println("Scan file: " + unit.getUnitFullName());
+			System.out.println("Scan file: " + unit.getUnitName());
 			
 			Debug.setStart("Begin calculating measures....!");
 			CompilationUnitMeasurement measurement = new CompilationUnitMeasurement(unit, structManager);
-			measurement.getMeasureList(measureList);
-			measurement.printToRow(writer, false);
+			measureList = measurement.getMeasureList(measureList);
+			writer.print(unit.getUnitName());
+			for (SoftwareMeasure measure : measureList) writer.print("\t" + measure.valueString());
+			writer.println("\t" + unit.getEnclosingPackage().getFullQualifiedName());
 			Debug.time("End calculating....");
 		}
 		Debug.time("End scan.....");

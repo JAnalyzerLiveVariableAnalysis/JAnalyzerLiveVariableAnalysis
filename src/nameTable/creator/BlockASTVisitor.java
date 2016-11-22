@@ -2,11 +2,14 @@ package nameTable.creator;
 
 import java.util.List;
 
+import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
+import nameTable.nameScope.NameScopeKind;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -31,12 +34,15 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.ContinueStatement;
+import org.eclipse.jdt.core.dom.CreationReference;
+import org.eclipse.jdt.core.dom.Dimension;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EmptyStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
@@ -46,8 +52,10 @@ import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
+import org.eclipse.jdt.core.dom.IntersectionType;
 import org.eclipse.jdt.core.dom.Javadoc;
 import org.eclipse.jdt.core.dom.LabeledStatement;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.LineComment;
 import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MemberRef;
@@ -58,6 +66,7 @@ import org.eclipse.jdt.core.dom.MethodRef;
 import org.eclipse.jdt.core.dom.MethodRefParameter;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.NameQualifiedType;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
@@ -79,6 +88,7 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.SynchronizedStatement;
@@ -91,14 +101,16 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.TypeParameter;
+import org.eclipse.jdt.core.dom.UnionType;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.core.dom.WildcardType;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 import util.Stack;
 
 /**
@@ -106,41 +118,30 @@ import util.Stack;
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2016/11/12
+ * 		Refactor the class according to the design document
  */
 public class BlockASTVisitor extends ASTVisitor {
-	protected String unitFullName = null;
-	protected CompilationUnit root = null;
+	protected NameTableCreator creator = null;
+	protected CompilationUnitFile unitFile = null;
 
 	protected Stack<NameScope> scopeStack = null;
 	
-	NameTableCreator creator = null;
 	protected TypeASTVisitor typeVisitor = null;
 	protected ExpressionASTVisitor expressionVisitor = null;
 	
-	public BlockASTVisitor(NameTableCreator creator, String unitFullName, CompilationUnit root, NameScope currentScope) {
+	public BlockASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope currentScope) {
 		this.creator = creator;
-		
-		this.unitFullName = unitFullName;
-		this.root = root;
+		this.unitFile = unitFile;
 		
 		scopeStack = new Stack<NameScope>();
 		if (currentScope != null) {
-			// System.out.println("In constructor, Push scope: " + currentScope.getScopeName());
 			scopeStack.push(currentScope);
 		}
 		
-		typeVisitor = new TypeASTVisitor(unitFullName, root, currentScope);
-		expressionVisitor = new ExpressionASTVisitor(unitFullName, root, currentScope);
-	}
-
-	public void reset(NameScope currentScope) {
-		scopeStack.clear();
-		if (currentScope == null) throw new AssertionError("Current scope is null in BlockASTVisitor.reset()!");
-		scopeStack.push(currentScope);
-		// System.out.println("In reset, Push scope: " + currentScope.getScopeName());
-		
-		typeVisitor.reset(unitFullName, root, currentScope);
-		expressionVisitor.reset(currentScope);
+		typeVisitor = new TypeASTVisitor(unitFile, currentScope);
+		expressionVisitor = new ExpressionASTVisitor(creator, unitFile, currentScope);
 	}
 
 	/**
@@ -158,7 +159,8 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
-	 * Ignore this kind of AST node so far
+	 * We process anonymous class declaration when visit Expression node ClassInstanceCreation
+	 * And then we can not see such node here any more!
 	 */
 	public boolean visit(AnonymousClassDeclaration node) {
 		return false;
@@ -208,7 +210,7 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(ArrayType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -241,20 +243,20 @@ public class BlockASTVisitor extends ASTVisitor {
 	 * push it to the scopeStack, and then visit its children. So the scope of its children is the new scope. After visiting 
 	 * all children, we pop the new scope.
 	 */
-	@SuppressWarnings("unchecked")
 	public boolean visit(Block node) {
 		// Check if the block need to create a local scope, if it need to create a local scope, then create a new scope and 
 		// push it to the scopeStack
-		boolean createScope = NameTableCreator.needCreateLocalScope(node);
+		boolean createScope = creator.needCreateLocalScope(node);
 		if (createScope) {
 			NameScope currentScope = scopeStack.getTop();
-			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, root, unitFullName);
-			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, root, unitFullName);
-			NameScope newLocalScope = NameTableCreator.createLocalScope(start, end, currentScope);
+			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
+			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, unitFile.root, unitFile.unitName);
+			NameScope newLocalScope = creator.createLocalScope(start, end, currentScope);
 			scopeStack.push(newLocalScope);
 		}
 		
 		// Then visit all children of the block
+		@SuppressWarnings("unchecked")
 		List<Statement> statementList = node.statements();
 		for (Statement statement : statementList) statement.accept(this);
 		
@@ -313,23 +315,23 @@ public class BlockASTVisitor extends ASTVisitor {
 		
 		// Create a new local scope for the body of the catch clause
 		NameScope currentScope = scopeStack.getTop();
-		SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, root, unitFullName);
-		SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, root, unitFullName);
-		NameScope newLocalScope = NameTableCreator.createLocalScope(start, end, currentScope);
+		SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
+		SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, unitFile.root, unitFile.unitName);
+		NameScope newLocalScope = creator.createLocalScope(start, end, currentScope);
 		
 		SingleVariableDeclaration exception = node.getException();
 		// Get the type reference of the exception
 		Type type = exception.getType();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
 
 		// Define the exception declared in the clause to the new scope
 		String exceptionName = exception.getName().getIdentifier();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(exception.getName(), root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(exception.getName(), unitFile.root, unitFile.unitName);
 		VariableDefinition exceptionDef = new VariableDefinition(exceptionName, exceptionName, location, newLocalScope);
-		exceptionDef.setVariableDefinitionKind(NameDefinitionKind.NDK_VARIABLE);
+		exceptionDef.setDefinitionKind(NameDefinitionKind.NDK_VARIABLE);
 		exceptionDef.setType(typeRef);
 		newLocalScope.define(exceptionDef);
 		
@@ -357,7 +359,7 @@ public class BlockASTVisitor extends ASTVisitor {
 
 	/**
 	 * ClassInstanceCreation: [ Expression . ] new [ < Type { , Type } > ] Type ( [ Expression { , Expression } ] ) [ AnonymousClassDeclaration ]
-	 * Use the expression visitor to visit the node, and add the result reference to the creator
+	 * Use the expression visitor to visit the node, and add the result reference to the current scope
 	 */
 	public boolean visit(ClassInstanceCreation node) {
 		NameScope currentScope = scopeStack.getTop();
@@ -404,6 +406,20 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(CreationReference node) {
+		return false;
+	}
+	
+	/**
+	 * Ignore this kind of AST node so far. We use type visitor to proccess the dimension of array type!
+	 */
+	public boolean visit(Dimension node) {
+		return false;
+	}
+
+	/**
 	 * DoStatement: do Statement while ( Expression ) ;
 	 * Only need to visit its children
 	 */
@@ -434,9 +450,9 @@ public class BlockASTVisitor extends ASTVisitor {
 			// Only when the body of the enhanced for statement is a block statement, we create a new scope for this block
 			createNewScope = true;
 			// Create a new local scope for the body of the statement
-			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, root, unitFullName);
-			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, root, unitFullName);
-			NameScope newLocalScope = NameTableCreator.createLocalScope(start, end, currentScope);
+			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
+			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, unitFile.root, unitFile.unitName);
+			NameScope newLocalScope = creator.createLocalScope(start, end, currentScope);
 			// Push the new scope to the scope stack, and visit the body block statement of the catch clause
 			// System.out.println("In enhanced for " + creator.getStartPosition(node).getLineNumber() + ", Push scope: " + newLocalScope.getScopeName());
 			scopeStack.push(newLocalScope);
@@ -447,7 +463,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		SingleVariableDeclaration variable = node.getParameter();
 		// Get the type reference of the parameter
 		Type type = variable.getType();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -455,9 +471,9 @@ public class BlockASTVisitor extends ASTVisitor {
 		// Define the parameter declared in the enhanced for statement to the current scope. Note that the current scope 
 		// will be the new scope if the new scope have been created!
 		String variableName = variable.getName().getIdentifier();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(variable.getName(), root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(variable.getName(), unitFile.root, unitFile.unitName);
 		VariableDefinition variableDef = new VariableDefinition(variableName, variableName, location, currentScope);
-		variableDef.setVariableDefinitionKind(NameDefinitionKind.NDK_VARIABLE);
+		variableDef.setDefinitionKind(NameDefinitionKind.NDK_VARIABLE);
 		variableDef.setType(typeRef);
 		currentScope.define(variableDef);
 		
@@ -503,6 +519,13 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Ignore this kind of AST node so far!
+	 */
+	public boolean visit(ExpressionMethodReference node) {
+		return false;
+	}
+	
+	/**
 	 * ExpressionStatement Expression ;
 	 * Use the expression visitor to visit the expression in the statement
 	 */
@@ -543,7 +566,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		if (node.getBody() == null) return false;
 		if (node.getBody().getNodeType() != ASTNode.BLOCK) return false; 
 		Block body = (Block)node.getBody();
-		if (NameTableCreator.needCreateLocalScope(body)) return true;
+		if (creator.needCreateLocalScope(body)) return true;
 		
 		List<Expression> initializers = node.initializers();
 		for (Expression expression : initializers) {
@@ -567,9 +590,9 @@ public class BlockASTVisitor extends ASTVisitor {
 
 			// Create a new local scope for the body of the for statement, its scope area is from the start location of the for statement to 
 			// the end location of the for statement 
-			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, root, unitFullName);
-			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, root, unitFullName);
-			NameScope newLocalScope = NameTableCreator.createLocalScope(start, end, currentScope);
+			SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
+			SourceCodeLocation end = SourceCodeLocation.getEndLocation(node, unitFile.root, unitFile.unitName);
+			NameScope newLocalScope = creator.createLocalScope(start, end, currentScope);
 			// Push the new scope to the scope stack, and visit the body block statement of the catch clause
 			scopeStack.push(newLocalScope);
 			// The variable declared in the for statement should be defined in the new scope
@@ -668,6 +691,18 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Use the TypeASTVisitor to visit this type node
+	 */
+	public boolean visit(IntersectionType node) {
+		NameScope currentScope = scopeStack.getTop();
+		typeVisitor.reset(currentScope);
+		node.accept(typeVisitor);
+		NameReference typeRef = typeVisitor.getResult();
+		currentScope.addReference(typeRef);
+		return false;
+	}
+	
+	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(Javadoc node) {
@@ -682,6 +717,12 @@ public class BlockASTVisitor extends ASTVisitor {
 		return true;
 	}
 
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(LambdaExpression node) {
+		return false;
+	}
 
 	/**
 	 * Ignore this kind of AST node so far
@@ -759,6 +800,17 @@ public class BlockASTVisitor extends ASTVisitor {
 		return false;
 	}
 
+	/**
+	 * Use the TypeASTVisitor to visit this type node
+	 */
+	public boolean visit(NameQualifiedType node) {
+		NameScope currentScope = scopeStack.getTop();
+		typeVisitor.reset(currentScope);
+		node.accept(typeVisitor);
+		NameReference typeRef = typeVisitor.getResult();
+		currentScope.addReference(typeRef);
+		return false;
+	}
 
 	/**
 	 * Ignore this kind of AST node so far
@@ -794,7 +846,7 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(ParameterizedType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -847,7 +899,7 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(PrimitiveType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -873,7 +925,7 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(QualifiedType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -885,7 +937,16 @@ public class BlockASTVisitor extends ASTVisitor {
 	 * Use the expression visitor to visit the possible expression
 	 */
 	public boolean visit(ReturnStatement node) {
-		return true;
+		Expression expression = node.getExpression();
+		if (expression != null) {
+			NameScope currentScope = scopeStack.getTop();
+			expressionVisitor.reset(currentScope);
+			
+			expression.accept(expressionVisitor);
+			NameReference result = expressionVisitor.getResult();
+			currentScope.addReference(result);
+		}
+		return false;
 	}
 
 	/**
@@ -907,13 +968,12 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(SimpleType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
 		return false;
 	}
-
 
 	/**
 	 * Ignore this kind of AST node so far
@@ -930,13 +990,13 @@ public class BlockASTVisitor extends ASTVisitor {
 		NameScope currentScope = scopeStack.getTop();
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
 		
 		// Define the variable to the current scope
-		NameTableCreator.defineVariable(node, typeRef, currentScope, unitFullName, root);
+		creator.defineVariable(unitFile, node, typeRef, currentScope);
 		
 		// Visit the initializer in the variable declaration
 		Expression initializer = node.getInitializer();
@@ -994,6 +1054,13 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(SuperMethodReference node) {
+		return false;
+	}
+	
+	/**
 	 * Only need to visit its children
 	 */
 	public boolean visit(SwitchCase node) {
@@ -1039,7 +1106,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		// Create a type reference for class name in the node
 		Name classNameNode = node.getQualifier();
 		if (classNameNode != null) {
-			SourceCodeLocation location = SourceCodeLocation.getStartLocation(classNameNode, root, unitFullName);
+			SourceCodeLocation location = SourceCodeLocation.getStartLocation(classNameNode, unitFile.root, unitFile.unitName);
 			String className = classNameNode.getFullyQualifiedName();
 			TypeReference classRef = new TypeReference(className, location, currentScope);
 			currentScope.addReference(classRef);
@@ -1069,13 +1136,30 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
-	 * Use creator.scan() to create the name definitions and references in the local type
+	 * Use NameTableCreator.scan() to create the name definitions and references in the local type
 	 */
 	public boolean visit(TypeDeclarationStatement node) {
 		NameScope currentScope = scopeStack.getTop();
-		if (node.getDeclaration().getNodeType() == ASTNode.TYPE_DECLARATION) {
+		String qualifier = currentScope.getScopeName();
+		// Find the full qualified name of the enclosing method or type as the name qualifier of this anonymous class.
+		NameScope betterScope = currentScope;
+		while (betterScope.getEnclosingScope() != null) {
+			if (betterScope.getScopeKind() == NameScopeKind.NSK_METHOD) {
+				qualifier = ((MethodDefinition)betterScope).getFullQualifiedName();
+				break;
+			} else if (betterScope.getScopeKind() == NameScopeKind.NSK_TYPE) {
+				qualifier = ((DetailedTypeDefinition)betterScope).getFullQualifiedName();
+				break;
+			}
+			betterScope = betterScope.getEnclosingScope();
+		}
+		int nodeType = node.getDeclaration().getNodeType();
+		if (nodeType == ASTNode.TYPE_DECLARATION) {
 			TypeDeclaration type = (TypeDeclaration)node.getDeclaration();
-			creator.scan(null, type, currentScope);
+			creator.scan(unitFile, qualifier, type, currentScope);
+		} else if (nodeType == ASTNode.ENUM_DECLARATION) {
+			EnumDeclaration enumType = (EnumDeclaration)node.getDeclaration();
+			creator.scan(unitFile, qualifier, enumType, currentScope);
 		}
 		return false;
 	}
@@ -1085,10 +1169,17 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(TypeLiteral node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.getType().accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
+		return false;
+	}
+
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(TypeMethodReference node) {
 		return false;
 	}
 
@@ -1100,6 +1191,18 @@ public class BlockASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Use the type visitor to visit this node
+	 */
+	public boolean visit(UnionType node) {
+		NameScope currentScope = scopeStack.getTop();
+		typeVisitor.reset(currentScope);
+		node.accept(typeVisitor);
+		NameReference typeRef = typeVisitor.getResult();
+		currentScope.addReference(typeRef);
+		return false;
+	}
+	
+	/**
 	 * VariableDeclarationExpression: { ExtendedModifier } Type VariableDeclarationFragment  { , VariableDeclarationFragment }
 	 * VariableDeclarationFragment:  Identifier { [] } [ = Expression ]
 	 */
@@ -1108,7 +1211,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		NameScope currentScope = scopeStack.getTop();
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -1117,7 +1220,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		List<VariableDeclarationFragment> fragments = node.fragments();
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
-			NameTableCreator.defineVariable(varNode, typeRef, currentScope, unitFullName, root);
+			creator.defineVariable(unitFile, varNode, typeRef, currentScope);
 			
 			// Visit the initializer in the variable declaration
 			Expression initializer = varNode.getInitializer();
@@ -1140,7 +1243,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		NameScope currentScope = scopeStack.getTop();
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);
@@ -1149,7 +1252,7 @@ public class BlockASTVisitor extends ASTVisitor {
 		List<VariableDeclarationFragment> fragments = node.fragments();
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
-			NameTableCreator.defineVariable(varNode, typeRef, currentScope, unitFullName, root);
+			creator.defineVariable(unitFile, varNode, typeRef, currentScope);
 			
 			// Visit the initializer in the variable declaration
 			Expression initializer = varNode.getInitializer();
@@ -1182,7 +1285,7 @@ public class BlockASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(WildcardType node) {
 		NameScope currentScope = scopeStack.getTop();
-		typeVisitor.reset(unitFullName, root, currentScope);
+		typeVisitor.reset(currentScope);
 		node.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		currentScope.addReference(typeRef);

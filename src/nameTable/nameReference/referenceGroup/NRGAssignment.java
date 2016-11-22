@@ -3,7 +3,7 @@ package nameTable.nameReference.referenceGroup;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to assignment expression. 
@@ -11,13 +11,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGAssignment extends NameReferenceGroup {
-
-	public NRGAssignment(String name, SourceCodeLocation location) {
-		super(name, location);
-		// TODO Auto-generated constructor stub
-	}
 
 	public NRGAssignment(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -38,7 +36,7 @@ public class NRGAssignment extends NameReferenceGroup {
 		// Bind the group to the binded definition of the first expression of 
 		// the assignment expressions
 		NameReference firstRef = subreferences.get(0);
-		TypeDefinition resultTypeDef = getResultTypeDefinition(firstRef);
+		TypeDefinition resultTypeDef = firstRef.getResultTypeDefinition();
 		bindTo(resultTypeDef);
 
 		return isResolved();

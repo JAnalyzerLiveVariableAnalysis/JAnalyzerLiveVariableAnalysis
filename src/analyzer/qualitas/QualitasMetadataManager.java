@@ -3,33 +3,27 @@ package analyzer.qualitas;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PipedWriter;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
-import nameTable.nameDefinition.DetailedTypeDefinition;
-import nameTable.nameDefinition.EnumTypeDefinition;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.NameDefinition;
-import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.metric.size.CodeLineCounterMetric;
 import softwareStructure.SoftwareStructManager;
-import util.Debug;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
 import analyzer.dataTable.DataTableManager;
+import util.Debug;
 
 /**
  * A single instance class to manager the properties and meta data of qualitas system given by the Qualitas team!
@@ -498,18 +492,18 @@ public class QualitasMetadataManager {
 		PrintWriter reportWriter = new PrintWriter(new File(reportFileName));
 		PrintWriter typeListWriter = new PrintWriter(new File(typeListFileName));
 		
-		SourceCodeParser parser = new SourceCodeParser(systemPath);
+		SourceCodeFileSet parser = new SourceCodeFileSet(systemPath);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		System.out.println("Begin creating system, path = " + systemPath);
-		NameTableManager nameTable = creator.createNameTableManager(false);
+		NameTableManager nameTable = creator.createNameTableManager();
 		SoftwareStructManager structManager = new SoftwareStructManager(nameTable);
 		CodeLineCounterMetric metric = new CodeLineCounterMetric();
 		metric.setSoftwareStructManager(structManager);
 
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new AllTypesFilter());
-		SystemScope rootScope = nameTable.getRootScope();
+		SystemScope rootScope = nameTable.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> allTypes = visitor.getResult();
 		
@@ -591,11 +585,11 @@ public class QualitasMetadataManager {
 						if (locInMetadata != locInUnitScope) {
 							// Our ELOC may be not equal to ncloc in meta file, since some line with notation '@', but actually an 
 							// effective line which will be not include in our ELOC.
-							reportWriter.println("\tType " + fullTypeName + " in meta data [loc, ncloc] is [" + locInMetadata + ", " + nclocInMetadata + "], but in unit scope [" + unitScope.getUnitFullName() + "] is [" + locInUnitScope + ", " + nclocInUnitScope + "]!");
+							reportWriter.println("\tType " + fullTypeName + " in meta data [loc, ncloc] is [" + locInMetadata + ", " + nclocInMetadata + "], but in unit scope [" + unitScope.getUnitName() + "] is [" + locInUnitScope + ", " + nclocInUnitScope + "]!");
 						}
 					} 
 
-					typeListContentBuffer.append(unitScope.getUnitFullName() + "\t");
+					typeListContentBuffer.append(unitScope.getUnitName() + "\t");
 					if (inBoth) typeListContentBuffer.append("source\t");
 					else typeListContentBuffer.append("binary\t");
 					if (foundType.isPackageMember()) {
@@ -636,7 +630,7 @@ public class QualitasMetadataManager {
 		String fileListName = QualitasPathsManager.getSystemPath(systemName, version) + "filelist.txt";
 		try {
 			PrintWriter fileListWriter = new PrintWriter(new FileOutputStream(new File(fileListName)));
-			for (CompilationUnitScope scope: usedUnitScopes) fileListWriter.println(scope.getUnitFullName());
+			for (CompilationUnitScope scope: usedUnitScopes) fileListWriter.println(scope.getUnitName());
 			fileListWriter.close();
 		} catch (Exception exc) {
 			exc.printStackTrace();
@@ -723,7 +717,7 @@ class AllTypesFilter extends NameTableFilter {
 	public boolean accept(NameDefinition definition) {
 		if (!definition.isTypeDefinition()) return false;
 		TypeDefinition type = (TypeDefinition)definition;
-		if (type.isDetailedType() || type.isEnumeration()) return true;	
+		if (type.isDetailedType() || type.isEnumType()) return true;	
 		return false;
 	}
 }

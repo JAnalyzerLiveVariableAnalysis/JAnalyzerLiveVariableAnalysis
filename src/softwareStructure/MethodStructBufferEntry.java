@@ -1,7 +1,5 @@
 package softwareStructure;
 
-import java.util.TreeMap;
-
 import nameTable.nameDefinition.MethodDefinition;
 
 /**

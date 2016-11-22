@@ -1,22 +1,26 @@
 package nameTable.nameScope;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.SourceCodeLocation;
-import nameTable.NameTableVisitor;
+import sourceCodeAST.SourceCodeLocation;
+import nameTable.filter.DetailedTypeDefinitionFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.IllegalNameDefinition;
+import nameTable.nameDefinition.ImportedStaticMemberDefinition;
+import nameTable.nameDefinition.ImportedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
+import nameTable.visitor.NameDefinitionVisitor;
+import nameTable.visitor.NameTableVisitor;
 
 /**
- * The class represents the system scope
+ * The class represents the system scope, which can be regarded as the entry to the name table. 
+ * 
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
@@ -26,21 +30,26 @@ public class SystemScope implements NameScope {
 	public static final String ROOT_OBJECT_NAME = "Object";
 	
 	private static final String SYSTEM_SCOPE_NAME = "<System>";	// The default name of the system scope
-	private List<PackageDefinition> packages = null;			// The packages of the system
-	private List<NameDefinition> names = null;					// The global names defined or used in the system
+	private List<PackageDefinition> packageList = null;			// The packages of the system
 	
-	private List<NameReference> references = null;				// The references occurs in the system scope. Generally, it will be null!
+	private List<ImportedTypeDefinition> importedTypeList = null;
+	private List<ImportedStaticMemberDefinition> importedStaticMemberList = null;
 	
-	private List<DetailedTypeDefinition> allDetailedTypes = null;	// A buffer to store a list of all detailed type definition.
+	private List<NameReference> referenceList = null;				// The references occurs in the system scope. Generally, it will be null!
+	
+	private List<DetailedTypeDefinition> allDetailedTypeList = null;	// A buffer to store a list of all detailed type definition.
 	
 	@Override
 	public void define(NameDefinition nameDef) throws IllegalNameDefinition {
 		if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_PACKAGE) {
-			if (packages == null) packages = new ArrayList<PackageDefinition>();
-			packages.add((PackageDefinition) nameDef);
-		} else {
-			if (names == null) names = new ArrayList<NameDefinition>();
-			names.add(nameDef);
+			if (packageList == null) packageList = new ArrayList<PackageDefinition>();
+			packageList.add((PackageDefinition) nameDef);
+		} else if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_TYPE) {
+			if (importedTypeList == null) importedTypeList = new ArrayList<ImportedTypeDefinition>();
+			importedTypeList.add((ImportedTypeDefinition)nameDef);
+		} else if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_STATIC_MEMBER) {
+			if (importedStaticMemberList == null) importedStaticMemberList = new ArrayList<ImportedStaticMemberDefinition>();
+			importedStaticMemberList.add((ImportedStaticMemberDefinition)nameDef);
 		}
 	}
 
@@ -61,9 +70,9 @@ public class SystemScope implements NameScope {
 
 	@Override
 	public List<NameScope> getSubScopeList() {
-		if (packages == null) return null;
+		if (packageList == null) return null;
 		List<NameScope> result = new ArrayList<NameScope>();
-		for (PackageDefinition pkgDef : packages) result.add(pkgDef);
+		for (PackageDefinition pkgDef : packageList) result.add(pkgDef);
 		return result;
 	}
 
@@ -75,26 +84,30 @@ public class SystemScope implements NameScope {
 	public boolean resolve(NameReference reference) {
 		PackageDefinition systemPackage = null;
 
-//		if (reference.getName().equals("ORB")) System.out.println("Resolve ORB in system scope " + this.getScopeName());
-		
-		if (packages != null) {
-			for (PackageDefinition packageDef : packages) {
+		if (packageList != null) {
+			for (PackageDefinition packageDef : packageList) {
 				// Test if there is the system package!
 				if (packageDef.getFullQualifiedName().equals(SystemScope.SYSTEM_PACKAGE_NAME)) systemPackage = packageDef;
 				if (packageDef.match(reference)) return true;
 			}
 		}
 		
-		if (names != null){
-			for (NameDefinition name : names) {
-				if (name.match(reference)) return true;
+		if (importedTypeList != null){
+			for (ImportedTypeDefinition importedType : importedTypeList) {
+				if (importedType.match(reference)) return true;
+			}
+		}
+		
+		if (importedStaticMemberList != null){
+			for (ImportedStaticMemberDefinition importedStaticMember : importedStaticMemberList) {
+				if (importedStaticMember.match(reference)) return true;
 			}
 		}
 		
 		if (systemPackage != null) {
 			if (reference.getReferenceKind() == NameReferenceKind.NRK_TYPE || reference.getReferenceKind() == NameReferenceKind.NRK_LITERAL) {
 				// Finally, try to match the reference (a type, or a literal) in the system package!
-				return systemPackage.matchTypeByReference(reference);
+				return systemPackage.matchTypeWithReference(reference);
 			} else return false;
 		} else return false;
 	}
@@ -102,188 +115,49 @@ public class SystemScope implements NameScope {
 	/**
 	 * @return the packages
 	 */
-	public List<PackageDefinition> getPackages() {
-		return packages;
+	public List<PackageDefinition> getPackageList() {
+		return packageList;
 	}
 
 	/**
 	 * Find the package definition by name
 	 */
 	public PackageDefinition findPackageByName(String packageName) {
-		if (packages == null) return null;
-		for (PackageDefinition packageDef : packages) {
+		if (packageList == null) return null;
+		for (PackageDefinition packageDef : packageList) {
 			if (packageDef.getFullQualifiedName().equals(packageName)) return packageDef;
 		}
 		return null;
 	}
 	
 	public PackageDefinition getUnnamedPackageDefinition() {
-		if (packages == null) return null;
-		for (PackageDefinition packageDef : packages) {
+		if (packageList == null) return null;
+		for (PackageDefinition packageDef : packageList) {
 			if (packageDef.isUnnamedPackage()) return packageDef;
 		}
 		return null;
 	}
 	
 	/**
-	 * @return the names
+	 * @return the imported type list
 	 */
-	public List<NameDefinition> getNames() {
-		return names;
+	public List<ImportedTypeDefinition> getImportedTypeList() {
+		return importedTypeList;
+	}
+
+	/**
+	 * @return the imported static member list
+	 */
+	public List<ImportedStaticMemberDefinition> getImportedStaticMemberList() {
+		return importedStaticMemberList;
 	}
 
 	@Override
 	public void addReference(NameReference reference) {
 		if (reference == null) return;
-		if (references == null) references = new ArrayList<NameReference>();
-		references.add(reference);
+		if (referenceList == null) referenceList = new ArrayList<NameReference>();
+		referenceList.add(reference);
 		
-	}
-
-	@Override
-	public List<NameReference> getReferences() {
-		return references;
-	}
-
-	
-	@Override
-	public void printReferences(PrintWriter writer, boolean includeLiteral) {
-		StringBuffer buffer = new StringBuffer();
-		if (references != null) {
-			buffer.append("\nReferences in scope " + getScopeName() + "\n");
-			for (NameReference reference : references) {
-				buffer.append(reference.referenceToString(0, includeLiteral));
-			}
-		}
-		writer.print(buffer);
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				subscope.printReferences(writer, includeLiteral);
-			}		
-		}
-	}
-	
-	/**
-	 * Display all definitions to a string for debugging
-	 */
-	@Override
-	public void printDefinitions(PrintWriter writer, int indent) {
-		StringBuffer buffer = new StringBuffer();
-		
-		if (names != null) {
-			buffer.append("Global names: \n");
-			for (NameDefinition name : names) { 
-				buffer.append("\t" + name.toString() + "\n");
-			}
-		}
-		writer.print(buffer);
-		
-		if (packages != null) {
-			for (PackageDefinition packageDef : packages) {
-				packageDef.printDefinitions(writer, 0);
-			}
-		}
-	}
-	
-	@Override
-	public List<NameDefinition> findAllDefinitionsByName(String namePostFix) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (names != null) {
-			for (NameDefinition nameDef : names) {
-				if (nameDef.match(namePostFix)) result.add(nameDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByName(namePostFix);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByName(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameScope> findAllSubScopesByName(String name) {
-		List<NameScope> result = new ArrayList<NameScope>();
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				if (subscope.getScopeName().equals(name)) result.add(subscope);
-				List<NameScope> temp = subscope.findAllSubScopesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public NameDefinition getDefinition(String name, boolean includeSubscopes) {
-		if (names == null) return null;
-		for (NameDefinition nameDef : names) {
-			if (nameDef.match(name)) return nameDef;
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.getDefinition(name, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public NameDefinition findDefinitionById(String id, boolean includeSubscopes) {
-		if (names == null) return null;
-		for (NameDefinition nameDef : names) {
-			if (id.equals(nameDef.getUniqueId())) return nameDef;
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.findDefinitionById(id, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public List<NameReference> getReferences(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		return result;
 	}
 
 	@Override
@@ -297,67 +171,26 @@ public class SystemScope implements NameScope {
 	}
 
 	@Override
-	public List<NameDefinition> findAllDefinitionsByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (names != null) {
-			for (NameDefinition nameDef : names) {
-				SourceCodeLocation location = nameDef.getLocation();
-				if (location != null && location.isBetween(start, end)) result.add(nameDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				SourceCodeLocation location = reference.getLocation();
-				if (location.isBetween(start, end)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public boolean containsLocation(SourceCodeLocation location) {
 		return true;
 	}
 
 	
-	@Override
-	public List<DetailedTypeDefinition> getAllDetailedTypeDefinition() {
-		if (allDetailedTypes != null) return allDetailedTypes;	// If this method has been called, then we return the result directly
-
-		List<DetailedTypeDefinition> result = new ArrayList<DetailedTypeDefinition>();
+	public List<DetailedTypeDefinition> getAllDetailedTypeDefinitions() {
+		// If this method has been called, then we return the result directly
+		if (allDetailedTypeList != null) return allDetailedTypeList;	
 		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<DetailedTypeDefinition> temp = subscope.getAllDetailedTypeDefinition();
-				result.addAll(temp);
-			}
+		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
+		visitor.setFilter(new DetailedTypeDefinitionFilter());
+		
+		this.accept(visitor);
+		allDetailedTypeList = new ArrayList<DetailedTypeDefinition>();
+		List<NameDefinition> resultList = visitor.getResult();
+		for (NameDefinition definition : resultList) {
+			allDetailedTypeList.add((DetailedTypeDefinition)definition);
 		}
 		
-		// Buffered the result for all next calls! 
-		// Note: we assume that the first call of this method is after that all definitions have been created!
-		allDetailedTypes = result;		 
-		return allDetailedTypes;
+		return allDetailedTypeList;
 	}
 
 	
@@ -367,22 +200,15 @@ public class SystemScope implements NameScope {
 	public List<MethodDefinition> getAllOverrideMethods(DetailedTypeDefinition baseType, MethodDefinition method) {
 		List<MethodDefinition> result = new ArrayList<MethodDefinition>();
 		
-		List<DetailedTypeDefinition> allDetailedTypeList = getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> allDetailedTypeList = getAllDetailedTypeDefinitions();
 		for (DetailedTypeDefinition type : allDetailedTypeList) {
 			
-//			DetailedTypeDefinition.counter = 0;
-			
-//			System.out.println("All type " + allDetailedTypeList.size() + ", In System scope, check type: " + type.getFullQualifiedName() + ", parent: " + baseType.getFullQualifiedName());
 			if (type != baseType && type.isSubtypeOf(baseType)) {
 				List<MethodDefinition> methodList = type.getMethodList();
 				if (methodList != null) {
 					for (MethodDefinition methodInSubType : methodList) {
 						if (methodInSubType.isOverrideMethod(method)) {
 							result.add(methodInSubType);
-							
-//							System.out.println("Add override method in [" + type.getSimpleName() + "] of base type [" + baseType.getSimpleName() + "]");
-//							System.out.println("\tAdd method " + methodInSubType.toFullString());
-//							System.out.println("\t\tIt override " + method.toFullString());
 						}
 					}
 				}
@@ -392,31 +218,25 @@ public class SystemScope implements NameScope {
 	}
 
 	/**
-	 * Important note: In system scope, getTotalNumberOfDefinitions(NameDefinitionKind.NDK_TYPE) != getAllDetailedTypeDefinition().size()
-	 * since the former includes enumeration types, while the latter does not include enumeration types!
+	 * Return all methods defined in the sub-type of the baseType (and not equal to baseType), and redefine (i.e. override) the given method!
 	 */
-	@Override
-	public int getTotalNumberOfDefinitions(NameDefinitionKind kind) {
-		int result = 0;
+	public List<MethodDefinition> getAllOverrideMethods(ImportedTypeDefinition baseType, MethodDefinition method) {
+		List<MethodDefinition> result = new ArrayList<MethodDefinition>();
 		
-		if (kind == NameDefinitionKind.NDK_PACKAGE) {
-			if (packages == null) return 0;
-			return packages.size();
+		for (ImportedTypeDefinition type : importedTypeList) {
+			if (type != baseType && type.isSubtypeOf(baseType)) {
+				List<MethodDefinition> methodList = type.getMethodList();
+				if (methodList != null) {
+					for (MethodDefinition methodInSubType : methodList) {
+						if (methodInSubType.isOverrideMethod(method)) {
+							result.add(methodInSubType);
+						}
+					}
+				}
+			}
 		}
-		
-		if (kind == NameDefinitionKind.NDK_UNKNOWN) {
-			if (packages != null) result += packages.size();
-			if (names != null) result += names.size();
-		}
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) result += subscope.getTotalNumberOfDefinitions(kind);
-		}
-		
 		return result;
 	}
-	
 	
 	public static SystemScope getRootScope(NameScope startScope) {
 		NameScope currentScope = startScope;
@@ -438,12 +258,27 @@ public class SystemScope implements NameScope {
 		visitor.preVisit(this);
 		
 		boolean visitSubscope = visitor.visit(this);
-		if (visitSubscope == true && packages != null) {
-			for (PackageDefinition pkgDef : packages) pkgDef.accept(visitor);
+		if (visitSubscope == true && packageList != null) {
+			for (PackageDefinition pkgDef : packageList) pkgDef.accept(visitor);
 		}
 		
 		visitor.endVisit(this);
 		visitor.postVisit(this);
+	}
+
+	@Override
+	public SourceCodeLocation getScopeStart() {
+		return null;
+	}
+
+	@Override
+	public SourceCodeLocation getScopeEnd() {
+		return null;
+	}
+
+	@Override
+	public List<NameReference> getReferenceList() {
+		return referenceList;
 	}
 
 }

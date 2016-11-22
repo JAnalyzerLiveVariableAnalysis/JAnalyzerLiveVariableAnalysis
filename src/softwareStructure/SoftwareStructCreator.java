@@ -5,6 +5,7 @@ import java.util.List;
 
 import util.Debug;
 import nameTable.NameTableManager;
+import nameTable.creator.NameReferenceCreator;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
@@ -24,6 +25,7 @@ import nameTable.nameReference.referenceGroup.NameReferenceGroup;
  */
 class SoftwareStructCreator {
 	protected NameTableManager tableManager = null;
+	protected NameReferenceCreator referenceCreator = null;
 	protected DetailedTypeStructEntryManager typeStructManager = null;
 	protected MethodStructEntryManager methodStructManager = null;
 	List<DetailedTypeDefinition> allDetailedTypeList = null;
@@ -33,6 +35,8 @@ class SoftwareStructCreator {
 
 	public SoftwareStructManager create(SoftwareStructManager resultManager) {
 		tableManager = resultManager.getNameTableManager();
+		referenceCreator = new NameReferenceCreator(tableManager);
+		
 		typeStructManager = resultManager.getDetailedTypeStructEntryManager();
 		methodStructManager = resultManager.getMethodStructManager();
 		
@@ -186,7 +190,7 @@ class SoftwareStructCreator {
 					if (fieldType.isDetailedType()) currentEntry.addUsedType((DetailedTypeDefinition)fieldType);
 				}
 				// Scan references in field initialize expression for get structure information of this type
-				List<NameReference> referenceList = tableManager.createAndReturnReferencesInField(field);
+				List<NameReference> referenceList = referenceCreator.createReferences(field);
 				scanReferenceInFieldInitializeExpression(currentEntry, referenceList);
 			}
 		}
@@ -279,7 +283,7 @@ class SoftwareStructCreator {
 		}
 
 		// Scan the throw types of the method
-		List<TypeReference> throwTypeReferenceList = method.getThrowTypes();
+		List<TypeReference> throwTypeReferenceList = method.getThrowTypeList();
 		if (throwTypeReferenceList != null) {
 			for (TypeReference throwTypeReference : throwTypeReferenceList) {
 				throwTypeReference.resolveBinding();
@@ -291,7 +295,7 @@ class SoftwareStructCreator {
 		}
 
 		// Scan the parameters of the method
-		List<VariableDefinition> parameterList = method.getParameters();
+		List<VariableDefinition> parameterList = method.getParameterList();
 		if (parameterList != null) {
 			for (VariableDefinition parameter : parameterList) {
 				List<TypeDefinition> oneParameterTypes = parameter.getTypeDefinition(true);
@@ -306,7 +310,7 @@ class SoftwareStructCreator {
 		}
 		
 		// Scan the body of the method
-		List<NameReference> referenceList = tableManager.createAndReturnReferencesInMethod(method);
+		List<NameReference> referenceList = referenceCreator.createReferences(method);
 		scanReferenceInMethodBody(typeStructEntry, null, referenceList);
 	}
 
@@ -321,7 +325,7 @@ class SoftwareStructCreator {
 		}
 
 		// Scan the throw types of the method
-		List<TypeReference> throwTypeReferenceList = method.getThrowTypes();
+		List<TypeReference> throwTypeReferenceList = method.getThrowTypeList();
 		if (throwTypeReferenceList != null) {
 			for (TypeReference throwTypeReference : throwTypeReferenceList) {
 				throwTypeReference.resolveBinding();
@@ -335,7 +339,7 @@ class SoftwareStructCreator {
 		MethodStructEntry currentEntry = new MethodStructEntry(method);
 		currentEntry.initializeStructureInformation();
 		// Scan the parameters of the method
-		List<VariableDefinition> parameterList = method.getParameters();
+		List<VariableDefinition> parameterList = method.getParameterList();
 		if (parameterList != null) {
 			for (VariableDefinition parameter : parameterList) {
 				List<TypeDefinition> oneParameterTypes = parameter.getTypeDefinition(true);
@@ -353,7 +357,7 @@ class SoftwareStructCreator {
 		}
 		
 		// Scan the body of the method
-		List<NameReference> referenceList = tableManager.createAndReturnReferencesInMethod(method);
+		List<NameReference> referenceList = referenceCreator.createReferences(method);
 		scanReferenceInMethodBody(typeStructEntry, currentEntry, referenceList);
 		return currentEntry;
 	}
@@ -405,7 +409,7 @@ class SoftwareStructCreator {
 			MethodReference methodReference = (MethodReference)reference;
 			MethodDefinition staticCalledMethod = (MethodDefinition)methodReference.getDefinition();
 			if (methodStructEntry != null) {
-				List<MethodDefinition> polymorphicCalledMethodList = methodReference.getAlternatives();
+				List<MethodDefinition> polymorphicCalledMethodList = methodReference.getAlternativeList();
 				if (polymorphicCalledMethodList != null) {
 					for (MethodDefinition polymorphicCalledMethod : polymorphicCalledMethodList) {
 						if (polymorphicCalledMethod == staticCalledMethod) methodStructEntry.addMethodCallInformation(polymorphicCalledMethod, 1, 1);

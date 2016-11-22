@@ -1,5 +1,7 @@
 package nameTable.nameReference.referenceGroup;
 
+import java.util.List;
+
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameReference.MethodReference;
@@ -7,7 +9,7 @@ import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to super method invocation expression. 
@@ -15,12 +17,13 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
+ * 		Important note: The method arguments and type arguments is setted when we create this group.
+ * 			As to so far, we do not consider the type arguments in the reference.
  */
 public class NRGSuperMethodInvocation extends NameReferenceGroup {
-
-	public NRGSuperMethodInvocation(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
 
 	public NRGSuperMethodInvocation(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -58,12 +61,23 @@ public class NRGSuperMethodInvocation extends NameReferenceGroup {
 			methodRef = (MethodReference)firstRef;
 			startIndex = 1;
 		}
+		
+		// Resolve type arguments and arguments of the method reference!
+		List<TypeReference> typeArgumentList = methodRef.getTypeArgumentList();
+		if (typeArgumentList != null) {
+			for (TypeReference typeArgument : typeArgumentList) typeArgument.resolveBinding();
+		}
+		List<NameReference> argumentList = methodRef.getArgumentList();
+		if (argumentList != null) {
+			for (NameReference argument : argumentList) argument.resolveBinding();
+		}
+		
 		if (typeDef != null) {
 			superTypeDef = typeDef.getSuperClassDefinition();
 		}
 		if (superTypeDef != null) {
 			if (subreferences.size() > startIndex) {
-				methodRef.setArguments(subreferences.subList(startIndex, subreferences.size()));
+				methodRef.setArgumentList(subreferences.subList(startIndex, subreferences.size()));
 			}
 			superTypeDef.resolve(methodRef);
 		}

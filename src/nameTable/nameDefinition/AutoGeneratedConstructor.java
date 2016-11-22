@@ -1,7 +1,7 @@
 package nameTable.nameDefinition;
 
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * This class is used as automatically generated default constructor for those classes without any constructor

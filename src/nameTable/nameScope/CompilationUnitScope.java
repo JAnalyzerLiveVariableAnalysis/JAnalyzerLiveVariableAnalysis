@@ -1,25 +1,25 @@
 package nameTable.nameScope;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.SourceCodeLocation;
-import nameTable.NameTableVisitor;
+import sourceCodeAST.SourceCodeLocation;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.EnumTypeDefinition;
 import nameTable.nameDefinition.IllegalNameDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.PackageDefinition;
-import nameTable.nameDefinition.SimpleTypeDefinition;
+import nameTable.nameDefinition.ImportedTypeDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.NameReferenceLabel;
+import nameTable.visitor.NameTableVisitor;
 
 /**
- * The class represent a compilation unit scope
+ * The class represents a compilation unit scope
+ * 
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
@@ -27,18 +27,28 @@ import nameTable.nameReference.NameReferenceLabel;
  * @update 2014-1-1 Zhou Xiaocong
  * 		Modify the method resolve() and bindImportDeclaration() to support on-demand import declaration!
  * 		Modify the field 'types' to List<DetailedTypeDefinition>
+ * 
+ * @update 2016/11/6
+ * 		Refactor the class according to the design document
  */
 public class CompilationUnitScope implements NameScope, Comparable<CompilationUnitScope> {
 	// File name of the compilation unit. It is used to generation the source code location of the name definitions and name references
-	private String unitFullName = null;				
-	private PackageDefinition packageScope = null;	// The package of the compilation unit
-	private List<TypeDefinition> types = null;		// The type definitions defined in the compilation unit
-	private List<NameReference> imports = null;		// The type reference or package reference imported by the compilation unit
+	private String unitName = null;				
+	private PackageDefinition enclosingPackage = null;				// The package of the compilation unit
+	private List<TypeDefinition> typeList = null;					// The type definitions defined in the compilation unit
+	private List<NameReference> importedTypeList = null;			// The type reference or package reference imported by the compilation unit
+	private List<NameReference> importedStaticMemberList = null;	// The type reference or package reference imported by the compilation unit
 	
-	private List<NameReference> references = null;	// The references occurs in the compilation unit directly. Generally, it will be null!
+	private SourceCodeLocation startLocation = null;
+	private SourceCodeLocation endLocation = null;
+	
+	private List<NameReference> referenceList = null;	// The references occurs in the compilation unit directly. Generally, it will be null!
 
-	public CompilationUnitScope(String unitFullName) {
-		this.unitFullName = unitFullName;
+	public CompilationUnitScope(String unitName, PackageDefinition enclosingPackage, SourceCodeLocation start, SourceCodeLocation end) {
+		this.unitName = unitName;
+		this.enclosingPackage = enclosingPackage;
+		this.startLocation = start;
+		this.endLocation = end; 
 	}
 
 	/* (non-Javadoc)
@@ -48,10 +58,10 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	public void define(NameDefinition nameDef) throws IllegalNameDefinition {
 		if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_TYPE) {
 			TypeDefinition typeDef = (TypeDefinition)nameDef;
-			if (!typeDef.isDetailedType() && !typeDef.isEnumeration()) throw new IllegalNameDefinition("The name defined in a compilation unit must be a detailed type or enumeration!");
+			if (!typeDef.isDetailedType() && !typeDef.isEnumType()) throw new IllegalNameDefinition("The name defined in a compilation unit must be a detailed type or enumeration!");
 			if (!typeDef.isPackageMember()) throw new IllegalNameDefinition("The name defined in a compilation unit must be a top level type!");
-			if (types == null) types = new ArrayList<TypeDefinition>();
-			types.add(typeDef);
+			if (typeList == null) typeList = new ArrayList<TypeDefinition>();
+			typeList.add(typeDef);
 		} else throw new IllegalNameDefinition("The name defined in a compilation unit must be a type!");
 	}
 
@@ -60,7 +70,7 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	 */
 	@Override
 	public NameScope getEnclosingScope() {
-		return packageScope;
+		return enclosingPackage;
 	}
 
 	/* (non-Javadoc)
@@ -76,7 +86,7 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	 */
 	@Override
 	public String getScopeName() {
-		return unitFullName;
+		return unitName;
 	}
 
 	/* (non-Javadoc)
@@ -84,10 +94,10 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	 */
 	@Override
 	public List<NameScope> getSubScopeList() {
-		if (types == null) return null;
+		if (typeList == null) return null;
 		List<NameScope> result = new ArrayList<NameScope>();
-		for (TypeDefinition type : types) {
-			if (type.isEnumeration()) result.add((EnumTypeDefinition)type);
+		for (TypeDefinition type : typeList) {
+			if (type.isEnumType()) result.add((EnumTypeDefinition)type);
 			else if (type.isDetailedType()) result.add((DetailedTypeDefinition)type);
 		}
 		return result;
@@ -98,8 +108,6 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	 */
 	@Override
 	public boolean resolve(NameReference reference) {
-//		if (reference.getName().equals("ORB")) System.out.println("Resolve ORB in compilation unit " + this.getScopeName());
-
 		NameReferenceKind refKind = reference.getReferenceKind();
 		if (refKind != NameReferenceKind.NRK_TYPE && refKind != NameReferenceKind.NRK_PACKAGE) {
 			// In a compilation unit, and its enclosing scope (i.e. a package, or the system scope), we can only resolve 
@@ -108,14 +116,15 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 		}
 		
 		// Match the reference in the type list
-		if (refKind == NameReferenceKind.NRK_TYPE && types != null) {
-			for (TypeDefinition type : types) {
+		if (refKind == NameReferenceKind.NRK_TYPE && typeList != null) {
+			for (TypeDefinition type : typeList) {
 				if (type.match(reference)) return true;
 			}
 		}
+		
 		// Match the reference in the imported type list
-		if (imports != null) {
-			for (NameReference importedType : imports) {
+		if (importedTypeList != null) {
+			for (NameReference importedType : importedTypeList) {
 				NameDefinition nameDef = importedType.getDefinition();
 				
 				if (nameDef != null) {
@@ -141,46 +150,60 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	/**
 	 * @return the fullFileName
 	 */
-	public String getUnitFullName() {
-		return unitFullName;
+	public String getUnitName() {
+		return unitName;
 	}
 
 	/**
 	 * @return the packageScope
 	 */
-	public PackageDefinition getPackage() {
-		return packageScope;
+	public PackageDefinition getEnclosingPackage() {
+		return enclosingPackage;
 	}
 	
-	public void setPackage(PackageDefinition pkgDef) {
-		packageScope = pkgDef;
-	}
-
 	/**
 	 * @return the types
 	 */
 	public List<TypeDefinition> getTypeList() {
-		return types;
+		return typeList;
 	}
 
 	/**
-	 * @return the imports
+	 * @return the imported type list
 	 */
-	public List<NameReference> getImportList() {
-		return imports;
+	public List<NameReference> getImportedTypeList() {
+		return importedTypeList;
 	}
 
-	public void addImportDeclaration(NameReference importedType) {
-		if (imports == null) imports = new ArrayList<NameReference>();
-		imports.add(importedType);
+	/**
+	 * Add imported type reference to the imported type list
+	 */
+	public void addImportedTypeReference(NameReference importedType) {
+		if (importedTypeList == null) importedTypeList = new ArrayList<NameReference>();
+		importedTypeList.add(importedType);
+	}
+	
+	/**
+	 * @return the imported static member list
+	 */
+	public List<NameReference> getImportedStaticMemberList() {
+		return importedStaticMemberList;
+	}
+
+	/**
+	 * Add imported static member reference to the imported static member list
+	 */
+	public void addImportedStaticMemberReference(NameReference importedStaticMember) {
+		if (importedStaticMemberList == null) importedStaticMemberList = new ArrayList<NameReference>();
+		importedStaticMemberList.add(importedStaticMember);
 	}
 	
 	/**
 	 * Match the reference in the type list of the compilation unit
 	 */
 	public boolean match(NameReference reference) {
-		if (types == null) return false;
-		for (TypeDefinition type : types) {
+		if (typeList == null) return false;
+		for (TypeDefinition type : typeList) {
 			if (type.match(reference)) return true;
 		}
 		return false;
@@ -191,30 +214,30 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	 */
 	public void bindImportDeclaration() {
 		SystemScope systemScope = (SystemScope)getEnclosingScope().getEnclosingScope();
-		if (systemScope == null) throw new AssertionError("The system scope is null in compilation unit: " + unitFullName + "!");
+		if (systemScope == null) throw new AssertionError("The system scope is null in compilation unit: " + unitName + "!");
 		
-		if (imports == null) return;
+		if (importedTypeList == null) return;
 		
-		for (NameReference importDecl : imports) {
+		for (NameReference importDecl : importedTypeList) {
 			if (importDecl.getReferenceKind() == NameReferenceKind.NRK_TYPE) {
 				// The import declaration is a single-type-import declaration
 				boolean success = false;
 				String name = importDecl.getName(); 
 				int dotIndex = name.lastIndexOf(NameReferenceLabel.NAME_QUALIFIER);
-				if (dotIndex < 1) throw new AssertionError("The imported type [" + name + "] at " + importDecl.getLocation().getFullFileName() + " have not package name!");
+				if (dotIndex < 1) throw new AssertionError("The imported type [" + name + "] at " + importDecl.getLocation().getFileUnitName() + " have not package name!");
 				
 				String packageName = name.substring(0, dotIndex);
 				String typeName = name.substring(dotIndex + 1);
 				
 				PackageDefinition packageDef = systemScope.findPackageByName(packageName);
 				if (packageDef != null) {
-					success =  packageDef.matchTypeByReference(importDecl);
+					success =  packageDef.matchTypeWithReference(importDecl);
 				} else {
 					success = systemScope.resolve(importDecl);
 				}
 
 				if (!success) {
-					SimpleTypeDefinition typeDef = new SimpleTypeDefinition(typeName, name, systemScope);
+					ImportedTypeDefinition typeDef = new ImportedTypeDefinition(typeName, name, systemScope);
 					systemScope.define(typeDef);
 					importDecl.bindTo(typeDef);
 				} else {
@@ -230,156 +253,12 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 		}
 	}
 
-	
-	/**
-	 * Display all definitions to a string for debugging
-	 */
-	public void printDefinitions(PrintWriter writer, int indent) {
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-		
-		StringBuffer buffer = new StringBuffer(indentString + "Compilation unit: ");
-		buffer.append(unitFullName);
-		writer.println(buffer);
-		
-		if (types != null) {
-			for (TypeDefinition type : types) {
-				type.printDefinitions(writer, indent+1);
-			}		
-		}
-	}
-
 	@Override
 	public void addReference(NameReference reference) {
 		if (reference == null) return;
-		if (references == null) references = new ArrayList<NameReference>();
-		references.add(reference);
+		if (referenceList == null) referenceList = new ArrayList<NameReference>();
+		referenceList.add(reference);
 		
-	}
-
-	@Override
-	public List<NameReference> getReferences() {
-		return references;
-	}
-
-	@Override
-	public void printReferences(PrintWriter writer, boolean includeLiteral) {
-		StringBuffer buffer = new StringBuffer();
-		if (references != null) {
-			buffer.append("\nReferences in scope " + getScopeName() + "\n");
-			for (NameReference reference : references) {
-				buffer.append(reference.referenceToString(0, includeLiteral));
-			}
-		}
-		writer.print(buffer);
-
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				subscope.printReferences(writer, includeLiteral);
-			}		
-		}
-	}
-
-	@Override
-	public List<NameDefinition> findAllDefinitionsByName(String namePostFix) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (types != null) {
-			for (TypeDefinition typeDef : types) {
-				if (typeDef.match(namePostFix)) result.add(typeDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByName(namePostFix);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByName(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameScope> findAllSubScopesByName(String name) {
-		List<NameScope> result = new ArrayList<NameScope>();
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				if (subscope.getScopeName().equals(name)) result.add(subscope);
-				List<NameScope> temp = subscope.findAllSubScopesByName(name);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public NameDefinition getDefinition(String name, boolean includeSubscopes) {
-		if (types == null) return null;
-		for (TypeDefinition type : types) {
-			if (type.match(name)) return type;
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.getDefinition(name, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public NameDefinition findDefinitionById(String id, boolean includeSubscopes) {
-		if (types == null) return null;
-		for (TypeDefinition type : types) {
-			if (id.equals(type.getUniqueId())) return type;
-		}
-		if (includeSubscopes) {
-			List<NameScope> subscopes = getSubScopeList();
-			if (subscopes != null) {
-				for (NameScope subscope : subscopes) {
-					NameDefinition target = subscope.findDefinitionById(id, includeSubscopes);
-					if (target != null) return target;
-				}		
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public List<NameReference> getReferences(String name) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		
-		if (references != null) {
-			for (NameReference reference : references) {
-				if (reference.getName().equals(name)) result.add(reference);
-			}
-		}
-		return result;
 	}
 
 	@Override
@@ -393,82 +272,8 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	}
 
 	@Override
-	public List<NameDefinition> findAllDefinitionsByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameDefinition> result = new ArrayList<NameDefinition>();
-		if (types != null) {
-			for (TypeDefinition typeDef : types) {
-				SourceCodeLocation location = typeDef.getLocation();
-				if (location.isBetween(start, end)) result.add(typeDef);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameDefinition> temp = subscope.findAllDefinitionsByPosition(start, end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public List<NameReference> findAllReferencesByPosition(SourceCodeLocation start, SourceCodeLocation end) {
-		List<NameReference> result = new ArrayList<NameReference>();
-		if (references != null) {
-			for (NameReference reference : references) {
-				SourceCodeLocation location = reference.getLocation();
-				if (location.isBetween(start, end)) result.add(reference);
-			}
-		}
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<NameReference> temp = subscope.findAllReferencesByPosition(start,end);
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public boolean containsLocation(SourceCodeLocation location) {
-		return unitFullName.equals(location.getFullFileName());
-	}
-	
-	@Override
-	public List<DetailedTypeDefinition> getAllDetailedTypeDefinition() {
-		List<DetailedTypeDefinition> result = new ArrayList<DetailedTypeDefinition>();
-
-		if (types != null) {
-			for (TypeDefinition type : types) {
-				if (type.isDetailedType()) result.add((DetailedTypeDefinition)type);
-			}
-		}
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) {
-				List<DetailedTypeDefinition> temp = subscope.getAllDetailedTypeDefinition();
-				result.addAll(temp);
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public int getTotalNumberOfDefinitions(NameDefinitionKind kind) {
-		int result = 0;
-		
-		if (kind == NameDefinitionKind.NDK_UNKNOWN || kind == NameDefinitionKind.NDK_TYPE) {
-			if (types != null) result += types.size();
-		}
-		
-		List<NameScope> subscopes = getSubScopeList();
-		if (subscopes != null) {
-			for (NameScope subscope : subscopes) result += subscope.getTotalNumberOfDefinitions(kind);
-		}
-		
-		return result;
+		return unitName.equals(location.getFileUnitName());
 	}
 
 	@Override
@@ -480,9 +285,9 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 		
 		boolean visitSubscope = visitor.visit(this);
 		
-		if (visitSubscope == true && types != null) {
-			for (TypeDefinition type : types) {
-				if (type.isEnumeration()) {
+		if (visitSubscope == true && typeList != null) {
+			for (TypeDefinition type : typeList) {
+				if (type.isEnumType()) {
 					EnumTypeDefinition enumType = (EnumTypeDefinition)type;
 					enumType.accept(visitor);
 				} else if (type.isDetailedType()) {
@@ -500,7 +305,7 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((unitFullName == null) ? 0 : unitFullName.hashCode());
+		result = prime * result + ((unitName == null) ? 0 : unitName.hashCode());
 		return result;
 	}
 
@@ -511,11 +316,26 @@ public class CompilationUnitScope implements NameScope, Comparable<CompilationUn
 
 		if (!(obj instanceof CompilationUnitScope)) return false;
 		CompilationUnitScope other = (CompilationUnitScope)obj;
-		return unitFullName.equals(other.unitFullName);
+		return unitName.equals(other.unitName);
 	}
 	
 	@Override
 	public int compareTo(CompilationUnitScope other) {
-		return unitFullName.compareTo(other.unitFullName);
+		return unitName.compareTo(other.unitName);
+	}
+
+	@Override
+	public SourceCodeLocation getScopeStart() {
+		return startLocation;
+	}
+
+	@Override
+	public SourceCodeLocation getScopeEnd() {
+		return endLocation;
+	}
+	
+	@Override
+	public List<NameReference> getReferenceList() {
+		return referenceList;
 	}
 }

@@ -9,18 +9,17 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
-import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 
 public class TestCallGraph 
@@ -49,7 +48,7 @@ public class TestCallGraph
 		String resultDot = rootPath + "ZxcWork\\ProgramAnalysis\\data\\resultCG.dot";
 		String resultNet = rootPath + "ZxcWork\\ProgramAnalysis\\data\\resultCG.net";
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator nameTableCreatorreator = new NameDefinitionCreator(parser);
 
 		Debug.setWriter(new PrintWriter(System.out));
@@ -81,7 +80,7 @@ public class TestCallGraph
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new LargeTypeFilter());
-		SystemScope rootScope = nameTableManager.getRootScope();
+		SystemScope rootScope = nameTableManager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		DetailedTypeDefinition type = (DetailedTypeDefinition)definitionList.get(0);

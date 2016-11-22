@@ -30,7 +30,7 @@ import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The factory class for creating execution point.
@@ -80,8 +80,8 @@ public class ExecutionPointFactory {
 		String description = astNode.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -96,8 +96,8 @@ public class ExecutionPointFactory {
 		String description = astNode.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -120,8 +120,8 @@ public class ExecutionPointFactory {
 		String description = astNode.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -137,8 +137,8 @@ public class ExecutionPointFactory {
 		String description = astNode.getDeclaration().getName().getIdentifier(); // The description is the type name declared by this statement
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -153,8 +153,8 @@ public class ExecutionPointFactory {
 		String description = StatementCFGCreatorHelper.astNodeToString(astNode);
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -171,8 +171,8 @@ public class ExecutionPointFactory {
 		String description = astNode.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.NORMAL, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -190,8 +190,8 @@ public class ExecutionPointFactory {
 		String description = variable.getName().getIdentifier() + " : " + exp.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.LOOP_PREDICATE, exp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -208,8 +208,8 @@ public class ExecutionPointFactory {
 		String description = condExp.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, type, condExp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -226,8 +226,8 @@ public class ExecutionPointFactory {
 		String description = condExp.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, type, condExp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -244,8 +244,8 @@ public class ExecutionPointFactory {
 		String description = condExp.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, type, condExp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -262,8 +262,8 @@ public class ExecutionPointFactory {
 		String description = condExp.toString();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, type, condExp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -293,8 +293,8 @@ public class ExecutionPointFactory {
 		}
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, type, condExp);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -309,8 +309,8 @@ public class ExecutionPointFactory {
 		String description = label;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.GROUP_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -325,8 +325,8 @@ public class ExecutionPointFactory {
 		String description = label;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.GROUP_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -341,8 +341,8 @@ public class ExecutionPointFactory {
 		String description = label;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.GROUP_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -357,8 +357,8 @@ public class ExecutionPointFactory {
 		String description = astNode.getExpression().toString();
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.GROUP_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -372,8 +372,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.SWITCH_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -387,8 +387,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.IF_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -402,8 +402,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.DO_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -417,8 +417,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.WHILE_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -432,8 +432,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.FOR_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -447,8 +447,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.ENHANCED_FOR_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -462,8 +462,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.TRY_BLOCK_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -477,8 +477,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.LABEL_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -492,8 +492,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.SYNCHRONIZE_END;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -509,8 +509,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.FINALLY_START;
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -526,8 +526,8 @@ public class ExecutionPointFactory {
 		String label = ExecutionPointLabel.TRY_END;
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, label, ExecutionPointType.GROUP_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -543,8 +543,8 @@ public class ExecutionPointFactory {
 		String description = label;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.FLOW_CONTROLLER, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -560,8 +560,8 @@ public class ExecutionPointFactory {
 		String description = label;
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.FLOW_CONTROLLER, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -576,8 +576,8 @@ public class ExecutionPointFactory {
 		String description = StatementCFGCreatorHelper.astNodeToString(astNode);
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.FLOW_CONTROLLER, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 
@@ -592,8 +592,8 @@ public class ExecutionPointFactory {
 		String description = astNode.toString();
 
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.FLOW_CONTROLLER, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -608,8 +608,8 @@ public class ExecutionPointFactory {
 		String description = astNode.getName().getIdentifier();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.CFG_START, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -624,8 +624,8 @@ public class ExecutionPointFactory {
 		String description = astNode.getName().getIdentifier();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.CFG_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 	
@@ -640,8 +640,8 @@ public class ExecutionPointFactory {
 		String description = astNode.getName().getIdentifier();
 		
 		ExecutionPoint value = new ExecutionPoint(id, label, description, ExecutionPointType.CFG_END, astNode);
-		value.setStartPosition(startLocation);
-		value.setEndPosition(endLocation);
+		value.setStartLocation(startLocation);
+		value.setEndLocation(endLocation);
 		return value;
 	}
 }

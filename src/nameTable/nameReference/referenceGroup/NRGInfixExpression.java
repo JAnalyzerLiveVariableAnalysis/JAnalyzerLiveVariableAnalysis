@@ -5,7 +5,7 @@ import nameTable.nameReference.LiteralReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceLabel;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to infix expression. 
@@ -13,12 +13,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGInfixExpression extends NameReferenceGroup {
-
-	public NRGInfixExpression(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
 
 	public NRGInfixExpression(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -41,23 +40,28 @@ public class NRGInfixExpression extends NameReferenceGroup {
 		if (subreferences.size() > 0) firstRef = subreferences.get(0);
 		if (subreferences.size() > 1) secondRef = subreferences.get(1);
 
-		if (operator.equals(OPERATOR_DECREMENT) || operator.equals(OPERATOR_INCREMENT) || operator.equals(OPERATOR_PLUS) || operator.equals(OPERATOR_MINUS) ||
-				operator.equals(OPERATOR_DIVIDE) || operator.equals(OPERATOR_TIMES) || operator.equals(OPERATOR_REMAINDER) || operator.equals(OPERATOR_AND) ||
-				operator.equals(OPERATOR_COMPLEMENT) || operator.equals(OPERATOR_OR) || operator.equals(OPERATOR_XOR)) {
+		if (isArithematicOperator()) {
 			if (firstRef != null && secondRef != null) {
-				TypeDefinition firstType = getResultTypeDefinition(firstRef);
-				TypeDefinition secondType = getResultTypeDefinition(secondRef);
+				TypeDefinition firstType = firstRef.getResultTypeDefinition();
+				TypeDefinition secondType = secondRef.getResultTypeDefinition();
 				if (firstType != null && secondType != null) {
-					if (firstType.isSubtypeOf(secondType)) bindTo(secondType);
+					// If the type of one operand is String, then bind to the type String.
+					if (firstType.getFullQualifiedName().equals("java.lang.String")) bindTo(firstType);
+					else if (secondType.getFullQualifiedName().equals("java.lang.String")) bindTo(secondType);
+					else if (firstType.isSubtypeOf(secondType)) bindTo(secondType);
 					else bindTo(firstType);
+				} else if (firstType != null) {
+					bindTo(firstType);
+				} else if (secondType != null) {
+					bindTo(secondType);
 				}
 			} else if (firstRef != null) {
-				TypeDefinition firstType = getResultTypeDefinition(firstRef);
+				TypeDefinition firstType = firstRef.getResultTypeDefinition();
 				bindTo(firstType);
 			}
-		} else if (operator.equals(OPERATOR_LEFT_SHIFT) || operator.equals(OPERATOR_RIGHT_SHIFT_SIGNED) || operator.equals(OPERATOR_RIGHT_SHIFT_UNSIGNED)) {
+		} else if (isShiftOperator()) {
 			if (firstRef != null) {
-				TypeDefinition firstType = getResultTypeDefinition(firstRef);
+				TypeDefinition firstType = firstRef.getResultTypeDefinition();
 				bindTo(firstType);
 			}
 		} else {

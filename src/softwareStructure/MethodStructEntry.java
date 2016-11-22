@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.TypeDefinition;

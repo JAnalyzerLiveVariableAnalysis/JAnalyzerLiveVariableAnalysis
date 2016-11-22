@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -12,7 +11,6 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 
-import softwareMeasurement.measure.SoftwareMeasure;
 import util.Debug;
 import analyzer.dataTable.DataTableManager;
 import analyzer.dataTable.DataTableUtil;

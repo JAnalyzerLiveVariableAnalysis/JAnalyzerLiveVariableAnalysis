@@ -6,10 +6,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import nameTable.DetailedTypeFilter;
-import nameTable.EnumTypeFilter;
-import nameTable.NameDefinitionVisitor;
 import nameTable.NameTableManager;
+import nameTable.filter.DetailedTypeDefinitionFilter;
+import nameTable.filter.EnumTypeFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.EnumTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
@@ -18,6 +17,7 @@ import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 
 /**
  * Manage the structure of a system by given the name table of the software system
@@ -92,9 +92,9 @@ public class SoftwareStructManager {
 
 	public List<DetailedTypeDefinition> getAllDetailedTypeDefinition() {
 		if (classList == null) {
-			SystemScope systemScope = tableManager.getRootScope();
+			SystemScope systemScope = tableManager.getSystemScope();
 			NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-			visitor.setFilter(new DetailedTypeFilter());
+			visitor.setFilter(new DetailedTypeDefinitionFilter());
 			systemScope.accept(visitor);
 			List<NameDefinition> allDetailedTypeList = visitor.getResult();
 			classList = new ArrayList<DetailedTypeDefinition>();
@@ -105,9 +105,8 @@ public class SoftwareStructManager {
 	
 	public List<EnumTypeDefinition> getAllEnumTypeDefinition() {
 		if (enumList == null) {
-			NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-			visitor.setFilter(new EnumTypeFilter());
-			SystemScope rootScope = tableManager.getRootScope();
+			NameDefinitionVisitor visitor = new NameDefinitionVisitor(new EnumTypeFilter());
+			SystemScope rootScope = tableManager.getSystemScope();
 			rootScope.accept(visitor);
 			List<NameDefinition> allEnumTypes = visitor.getResult();
 			enumList = new ArrayList<EnumTypeDefinition>();
@@ -815,7 +814,7 @@ public class SoftwareStructManager {
 	 */
 	public List<VariableDefinition> getParameterList(MethodDefinition method) {
 		List<VariableDefinition> resultList = new ArrayList<VariableDefinition>();
-		List<VariableDefinition> parameters = method.getParameters();
+		List<VariableDefinition> parameters = method.getParameterList();
 		if (parameters != null) {
 			if (parameters.size() > 0) resultList.addAll(parameters);
 		}

@@ -51,8 +51,8 @@ public class ClassChangeIndicator extends NodeChangeIndicator {
 		indicator.base = new ArrayList<String>();
 		indicator.contrast = new ArrayList<String>();
 		
-		List<DetailedTypeDefinition> baseTypeList = baseManager.getRootScope().getAllDetailedTypeDefinition();
-		List<DetailedTypeDefinition> contTypeList = contManager.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> baseTypeList = baseManager.getSystemScope().getAllDetailedTypeDefinitions();
+		List<DetailedTypeDefinition> contTypeList = contManager.getSystemScope().getAllDetailedTypeDefinitions();
 		List<DetailedTypeDefinition> alignedContTypeList = new ArrayList<DetailedTypeDefinition>();
 		double threshold = 0.95;
 		
@@ -71,13 +71,13 @@ public class ClassChangeIndicator extends NodeChangeIndicator {
 				}
 			}
 			if (aligned == true) {
-				String baseLabel = baseType.getSimpleName() + "@" + baseType.getLocation().toFullString();
+				String baseLabel = baseType.getSimpleName() + "@" + baseType.getLocation().getUniqueId();
 				indicator.base.add(baseLabel);
-				String contLabel = contType.getSimpleName() + "@" + contType.getLocation().toFullString();
+				String contLabel = contType.getSimpleName() + "@" + contType.getLocation().getUniqueId();
 				indicator.contrast.add(contLabel);
 				alignedContTypeList.add(contType);
 			} else {
-				String baseLabel = baseType.getSimpleName() + "@" + baseType.getLocation().toFullString();
+				String baseLabel = baseType.getSimpleName() + "@" + baseType.getLocation().getUniqueId();
 				indicator.base.add(baseLabel);
 				indicator.contrast.add("");
 			}
@@ -94,7 +94,7 @@ public class ClassChangeIndicator extends NodeChangeIndicator {
 				}
 			}
 			if (aligned == false) {
-				String contLabel = contType.getSimpleName() + "@" + contType.getLocation().toFullString();
+				String contLabel = contType.getSimpleName() + "@" + contType.getLocation().getUniqueId();
 				indicator.base.add("");
 				indicator.contrast.add(contLabel);
 				System.out.println("Add base = [], cont = [" + contLabel + "]");
@@ -176,7 +176,7 @@ public class ClassChangeIndicator extends NodeChangeIndicator {
 								report.println(reportString);
 								found = true;
 							}
-							reportString = "\t" + tempType.getSimpleName() + "@" + tempType.getLocation().toFullString() + ", similarity = " + similarity;
+							reportString = "\t" + tempType.getSimpleName() + "@" + tempType.getLocation().getUniqueId() + ", similarity = " + similarity;
 							report.println(reportString);
 						}
 					}
@@ -199,7 +199,7 @@ public class ClassChangeIndicator extends NodeChangeIndicator {
 								report.println(reportString);
 								found = true;
 							}
-							reportString = "\t" + tempType.getSimpleName() + "@" + tempType.getLocation().toFullString() + ", similarity = " + similarity;
+							reportString = "\t" + tempType.getSimpleName() + "@" + tempType.getLocation().getUniqueId() + ", similarity = " + similarity;
 							report.println(reportString);
 						}
 					}

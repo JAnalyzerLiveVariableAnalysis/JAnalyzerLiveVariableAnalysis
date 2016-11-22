@@ -1,15 +1,13 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
-
-import org.eclipse.jdt.core.dom.Modifier;
+import java.util.List;
 
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceLabel;
+import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import nameTable.nameScope.NameScopeKind;
 import nameTable.nameScope.SystemScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * <p>The class represents a type definition, which can be a detailed type definition, an enumeration type definition, 
@@ -20,18 +18,13 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2015/11/5
+ * 		Refactor the class according to the design document
  */
 public abstract class TypeDefinition extends NameDefinition {
 	protected boolean isInterface = false;
 	protected boolean isPackageMember = true;
-
-	public TypeDefinition(String simpleName) {
-		super(simpleName);
-	}
-
-	public TypeDefinition(String simpleName, String fullQualifiedName) {
-		super(simpleName, fullQualifiedName);
-	}
 
 	public TypeDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope) {
 		super(simpleName, fullQualifiedName, location, scope);
@@ -48,12 +41,21 @@ public abstract class TypeDefinition extends NameDefinition {
 	/**
 	 * Test if the type is detailed type definition or not
 	 */
-	public abstract boolean isDetailedType();
+	public boolean isDetailedType() {
+		return false;
+	}
+
+	/**
+	 * Test if the type is imported type definition or not
+	 */
+	public boolean isImportedType() {
+		return false;
+	}
 
 	/**
 	 * Test if the type is an enumeration type
 	 */
-	public boolean isEnumeration() {
+	public boolean isEnumType() {
 		return false;
 	}
 
@@ -109,13 +111,39 @@ public abstract class TypeDefinition extends NameDefinition {
 	}
 	
 	/**
+	 * Get the list of super type references 
+	 */
+	public abstract List<TypeReference> getSuperList();
+
+	/**
 	 * Test whether the current type is the sub-type of the given type by the parameter
 	 */
 	public boolean isSubtypeOf(TypeDefinition parent) {
 		if (this == parent) return true;
-		
-		return matchSubtypeRelationsOfSimpleTypes(simpleName, parent.getSimpleName());
+
+		List<TypeReference> superList = getSuperList();
+		if (superList != null) {
+			// Match the definition in the super list!
+			for (TypeReference superType : superList) {
+				if (!superType.isResolved()) superType.resolveBinding();
+				if (superType.getDefinition() == parent) return true;
+				if (superType.getDefinition() == this) {
+					System.out.println("In TypeDefinition 131: The super type [" + superType.getName() + ", kind = " + superType.getTypeKind() + "] of " + this.fullQualifiedName + " include itself!");
+					System.exit(0);
+				}
+			}
+			// If do match the definition in the super list, recursively judge the super type of the current type 
+			// is the sub-type of parent
+			for (TypeReference superType : superList) {
+				TypeDefinition superDef = (TypeDefinition)superType.getDefinition();
+				if (superDef != null) {
+					if (superDef.isSubtypeOf(parent)) return true;
+				}
+			}
+			return false;
+		} else return matchSubtypeRelationsOfSimpleTypes(simpleName, parent.getSimpleName());
 	}
+	
 	
 	/**
 	 * We often need to resolve reference in EnumTypeDefinition and DetailedTypeDefinition, but we only get 
@@ -150,21 +178,4 @@ public abstract class TypeDefinition extends NameDefinition {
 		}
 		return false;
 	}
-	
-	public void printDefinitions(PrintWriter writer, int indent) {
-		StringBuffer buffer = new StringBuffer();
-		
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-		
-		if (isInterface()) buffer.append(indentString + "Interface: ");
-		else if (isEnumeration()) buffer.append(indentString + "Enumeration: ");
-		else buffer.append(indentString + "Class ");
-		
-		buffer.append(simpleName + "\n");
-		writer.print(buffer);
-	}
-	
 }

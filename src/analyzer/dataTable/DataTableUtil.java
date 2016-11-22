@@ -696,7 +696,7 @@ public class DataTableUtil {
 					if (colIndex == 0) {
 						if (i == 0) writer.print("\\pname{" + columnString + "} ");
 						else writer.print(" & \\pname{" + columnString + "} ");
-					} else writer.print(" & " + columnString);
+					} else writer.print(" & \\pname{" + columnString + "} ");
 				}
 				index = index + 1;
 			}

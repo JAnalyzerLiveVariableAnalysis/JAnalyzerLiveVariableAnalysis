@@ -1,22 +1,24 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import nameTable.nameReference.ParameterizedTypeReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
- * The class represent a variable definition or a method parameter definition
+ * The class represents a variable definition or a method parameter definition
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
  * 
  * @update 2013-12-29
  * 		Add method getTypeDefinition()
+ * 
+ * @update 2015/11/5
+ * 		Refactor the class according to the design document
  */
 public class VariableDefinition extends NameDefinition {
 	private NameDefinitionKind kind = NameDefinitionKind.NDK_VARIABLE;
@@ -37,7 +39,7 @@ public class VariableDefinition extends NameDefinition {
 	/**
 	 * Set the kind of the variable definition, which can be NDK_PARAMETER or NDK_VARIABLE
 	 */
-	public void setVariableDefinitionKind(NameDefinitionKind kind) {
+	public void setDefinitionKind(NameDefinitionKind kind) {
 		this.kind = kind;
 	}
 
@@ -84,21 +86,6 @@ public class VariableDefinition extends NameDefinition {
 		this.type = type;
 	}
 
-	@Override
-	public void printDefinitions(PrintWriter writer, int indent) {
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-
-		StringBuffer buffer = new StringBuffer(indentString + "Variable: ");
-		String typeString = type.getName();
-		for (int count = 0; count < type.getDimension(); count++) typeString += "[]";
-		buffer.append(typeString + " " + simpleName + "\n");
-
-		writer.print(buffer);
-	}
-	
 	/**
 	 * Display a variable definition as "type[] variableName"
 	 */

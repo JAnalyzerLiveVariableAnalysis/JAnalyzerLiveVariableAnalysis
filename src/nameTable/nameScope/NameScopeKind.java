@@ -12,5 +12,5 @@ public enum NameScopeKind {
 	NSK_TYPE,
 	NSK_METHOD,
 	NSK_LOCAL,
-	NSK_UNKNOWN,
+	NSK_IMPORTED_TYPE,
 }

@@ -8,10 +8,7 @@ import java.io.PrintWriter;
 import java.util.TreeSet;
 
 import analyzer.dataTable.DataTableManager;
-import nameTable.creator.NameDefinitionCreator;
-import nameTable.creator.NameTableCreator;
 import util.Debug;
-import util.SourceCodeParser;
 import util.SourceFilePackingManager;
 import util.SystemVersionComparator;
 
@@ -221,9 +218,9 @@ public class QualitasPackingManager {
 	/**
 	 * Rename the file given by the parameter, if it is not in the fileNameSet. Note that the file name in fileNameSet
 	 * is a unit file name which is used in source code location. We must transfer the path in file to unit file name as 
-	 * in the class SourceCodeParser when we search the file in fileNameSet!
+	 * in the class SourceCodeFileSet when we search the file in fileNameSet!
 	 * 
-	 * @see SourceCodeParser 
+	 * @see SourceCodeFileSet 
 	 */
 	public static void renameAJavaFileNotInFileList(String systemPath, File file, TreeSet<String> fileNameSet) {
 		// Treat the path in file to unit file name (which is used in source code location) as in the class SourceCodeParser

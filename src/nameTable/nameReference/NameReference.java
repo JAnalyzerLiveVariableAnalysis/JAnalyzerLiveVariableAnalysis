@@ -1,5 +1,8 @@
 package nameTable.nameReference;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
@@ -8,15 +11,18 @@ import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The abstract base class for the class representing a name reference
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
-public abstract class NameReference implements Comparable<NameReference> {
+public class NameReference implements Comparable<NameReference> {
 	// The name of the reference, it maybe contains '.' as a partial qualified name
 	protected String name = null;	
 	// The location of the reference in the source code. 
@@ -26,17 +32,6 @@ public abstract class NameReference implements Comparable<NameReference> {
 	protected NameScope scope = null;
 	protected NameReferenceKind kind = null;
 	
-	public NameReference(String name, SourceCodeLocation location) {
-		this.name = name;
-		this.location = location;
-	}
-
-	public NameReference(String name, SourceCodeLocation location, NameReferenceKind kind) {
-		this.name = name;
-		this.location = location;
-		this.kind = kind;
-	}
-
 	public NameReference(String name, SourceCodeLocation location, NameScope scope) {
 		this.name = name;
 		this.location = location;
@@ -109,13 +104,6 @@ public abstract class NameReference implements Comparable<NameReference> {
 	}
 	
 	/**
-	 * Set the scope of the reference
-	 */
-	public void setScope(NameScope scope) {
-		this.scope = scope;
-	}
-
-	/**
 	 * Set the kind of the reference
 	 */
 	public void setReferenceKind(NameReferenceKind kind) {
@@ -140,19 +128,47 @@ public abstract class NameReference implements Comparable<NameReference> {
 			if (currentScope.getScopeKind() == NameScopeKind.NSK_TYPE) return (TypeDefinition)currentScope; 
 			currentScope = currentScope.getEnclosingScope();
 		}
-		throw new AssertionError("Can not find enclosing type definition for reference " + this.toFullString());
+		return null;
 	}
 	
-	/** 
-	 * Test whether the two references refer to the same definition
+	/**
+	 * Get the result type definition for a reference which is regarded as an expression. 
+	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type definition of the variable
+	 * <LI>If the reference is bind to a method definition, then return the return type of the method
+	 * <LI>Otherwise return null</OL>
 	 */
-	public boolean referToSameDefinition(NameReference reference) {
-		if (isResolved() && reference.isResolved()) {
-			return getDefinition() == reference.getDefinition();
-		} else if (name == reference.name && scope == reference.scope) return true;
-		return false;
+	public TypeDefinition getResultTypeDefinition() {
+		if (!isResolved()) resolveBinding();
+		
+		NameDefinition nameDef = getDefinition();
+		if (nameDef == null) return null;
+		
+		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
+		if (nameDefKind == NameDefinitionKind.NDK_TYPE) return (TypeDefinition)nameDef;
+		else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
+			FieldDefinition fieldDef = (FieldDefinition)nameDef;
+			return fieldDef.getTypeDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
+			VariableDefinition varDef = (VariableDefinition)nameDef;
+			return varDef.getTypeDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
+			MethodDefinition methodDef = (MethodDefinition)nameDef;
+			return methodDef.getReturnTypeDefinition();
+		} else return null;
 	}
 	
+	/**
+	 * Return all reference at the leaf in the name reference. Many references indeed include other references as parts of
+	 * themselves. This method will return the basic references in the current reference. The basic reference do not include
+	 * any other references as parts of itself.   
+	 */
+	public List<NameReference> getReferencesAtLeaf() {
+		List<NameReference> result = new ArrayList<NameReference>();
+		result.add(this);
+		return result;
+	}
+	
+
 	/**
 	 * Test whether the reference is a literal
 	 */
@@ -194,6 +210,12 @@ public abstract class NameReference implements Comparable<NameReference> {
 	public void setLeftValueReference() {
 		return;
 	}
+
+	public String getUniqueId() {
+		if (location != null) return name + "@" + location.getUniqueId();
+		else return name;
+	}
+
 	
 	@Override
 	public int hashCode() {
@@ -217,14 +239,9 @@ public abstract class NameReference implements Comparable<NameReference> {
 		return getUniqueId().compareTo(other.getUniqueId());
 	}
 	
-	public String getUniqueId() {
-		if (location != null) return name + "@" + location.toFullString();
-		else return name;
-	}
-
 	public String toFullString() {
-		return "Reference [Name = " + name + ", location = " + 
-				location.toFullString() + ", scope = " + scope.getScopeName() + "]";
+		return kind.id + " Reference [Name = " + name + ", location = " + 
+				location.getUniqueId() + ", scope = " + scope.getScopeName() + "]";
 	}
 
 	/* (non-Javadoc)
@@ -232,13 +249,13 @@ public abstract class NameReference implements Comparable<NameReference> {
 	 */
 	@Override
 	public String toString() {
-		return "Reference [Name = " + name + " @ " + location.toFullString() + "]";
+		return kind.id + " Reference [Name = " + name + " @ " + location.getUniqueId() + "]";
 	}
 	
 	/**
 	 * Return a better string of the reference for debugging
 	 */
-	public String referenceToString(int indent, boolean includeLiteral) {
+	public String toMultilineString(int indent, boolean includeLiteral) {
 		if (!includeLiteral && kind == NameReferenceKind.NRK_LITERAL) return "";
 		
 		// Create a space string for indent;
@@ -246,9 +263,9 @@ public abstract class NameReference implements Comparable<NameReference> {
 		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
 		String indentString = new String(indentArray);
 
-		StringBuffer buffer = new StringBuffer(indentString + "Reference: [Name = " + name);
+		StringBuffer buffer = new StringBuffer(indentString + kind.id + " Reference [Name = " + name);
 		if (indent > 0) buffer.append(" @" + location.toString() + "]\n");
-		else buffer.append(" @" + location.toFullString() + "]\n");
+		else buffer.append(" @" + location.getUniqueId() + "]\n");
 			
 		return buffer.toString();
 	}
@@ -257,58 +274,7 @@ public abstract class NameReference implements Comparable<NameReference> {
 	 * Display the definition binded to the reference
 	 */
 	public String bindedDefinitionToString() {
-		if (definition == null) return "Reference [" + name + "] has not been resolved!";
-		else return "Reference [" + name + "] is binded to: " + definition.toFullString();
+		if (definition == null) return kind.id + " Reference [" + name + "] has not been resolved!";
+		else return kind.id + " Reference [" + name + "] is binded to: [" + definition.getUniqueId() + "]";
 	}
-	
-	/**
-	 * Get the result type definition for a reference which is regarded as an expression. 
-	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type definition of the variable
-	 * <LI>If the reference is bind to a method definition, then return the return type of the method
-	 * <LI>Otherwise return null</OL>
-	 */
-	public static TypeDefinition getResultTypeDefinition(NameReference reference) {
-		if (reference == null || !reference.isResolved()) return null;
-		NameDefinition nameDef = reference.getDefinition();
-		
-		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
-		if (nameDefKind == NameDefinitionKind.NDK_TYPE) return (TypeDefinition)nameDef;
-		else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
-			FieldDefinition fieldDef = (FieldDefinition)nameDef;
-			return fieldDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
-			VariableDefinition varDef = (VariableDefinition)nameDef;
-			return varDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
-			MethodDefinition methodDef = (MethodDefinition)nameDef;
-			return methodDef.getReturnTypeDefinition();
-		} else return null;
-	}
-	
-	/**
-	 * Get the result type definition for a reference which is regarded as an expression. 
-	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type definition of the variable
-	 * <LI>If the reference is bind to a method definition, then return the return type of the method
-	 * <LI>Otherwise return null</OL>
-	 */
-	public TypeDefinition getResultTypeDefinition() {
-		if (!isResolved()) resolveBinding();
-		
-		NameDefinition nameDef = getDefinition();
-		if (nameDef == null) return null;
-		
-		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
-		if (nameDefKind == NameDefinitionKind.NDK_TYPE) return (TypeDefinition)nameDef;
-		else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
-			FieldDefinition fieldDef = (FieldDefinition)nameDef;
-			return fieldDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
-			VariableDefinition varDef = (VariableDefinition)nameDef;
-			return varDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
-			MethodDefinition methodDef = (MethodDefinition)nameDef;
-			return methodDef.getReturnTypeDefinition();
-		} else return null;
-	}
-	
 }

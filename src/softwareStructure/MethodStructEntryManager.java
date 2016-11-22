@@ -3,7 +3,6 @@ package softwareStructure;
 import java.util.Set;
 import java.util.TreeMap;
 
-import util.Debug;
 import nameTable.nameDefinition.MethodDefinition;
 
 /**

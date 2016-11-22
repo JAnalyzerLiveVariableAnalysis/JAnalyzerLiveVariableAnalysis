@@ -11,11 +11,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
@@ -23,8 +22,9 @@ import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import util.Debug;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
 
 /**
  * @author Zhou Xiaocong
@@ -85,12 +85,12 @@ public class TestSoftwareStructManager {
 	}
 
 	public static void findLargePolyCallMethod(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator nameTablecreator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating name table, path = " + path);
 		Debug.disable();
-		NameTableManager nameTableManager = nameTablecreator.createNameTableManager(true);
+		NameTableManager nameTableManager = nameTablecreator.createNameTableManager();
 		Debug.enable();
 		Debug.time("End creating.....");
 		
@@ -117,7 +117,7 @@ public class TestSoftwareStructManager {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new LargeMethodFilter());
-		SystemScope rootScope = nameTableManager.getRootScope();
+		SystemScope rootScope = nameTableManager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
@@ -154,12 +154,12 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testTypeStructManager(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator nameTablecreator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating name table, path = " + path);
 		Debug.disable();
-		NameTableManager nameTableManager = nameTablecreator.createNameTableManager(true);
+		NameTableManager nameTableManager = nameTablecreator.createNameTableManager();
 		Debug.enable();
 		Debug.time("End creating.....");
 		
@@ -174,7 +174,7 @@ public class TestSoftwareStructManager {
 		Debug.time("End creating.....");
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = nameTableManager.getRootScope();
+		SystemScope rootScope = nameTableManager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
@@ -332,7 +332,7 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testDetailedTypeUsingMatrix(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -364,7 +364,7 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testDetailedTypeMatrix(String path, PrintWriter writer) throws IOException {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -375,7 +375,7 @@ public class TestSoftwareStructManager {
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
@@ -409,7 +409,7 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testMethodInvocations(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -420,7 +420,7 @@ public class TestSoftwareStructManager {
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
@@ -513,7 +513,7 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testInheritanceInformation(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -524,7 +524,7 @@ public class TestSoftwareStructManager {
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
@@ -614,7 +614,7 @@ public class TestSoftwareStructManager {
 	}
 	
 	public static void testMemberInformation(String path, PrintWriter writer) {
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -625,7 +625,7 @@ public class TestSoftwareStructManager {
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		

@@ -8,8 +8,8 @@ import java.util.List;
 
 import softwareChange.ClassChangeIndicator;
 import softwareChange.NodeChangeIndicator;
-import util.SourceCodeLocation;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
+import sourceCodeAST.SourceCodeLocation;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
@@ -270,7 +270,7 @@ public class ClassAnalysisReporter {
 	public ValuedNodeManager generateDetailedTypeLength(int versionIndex) {
 		NameTableManager table = generateNameTableManager(versionIndex);
 
-		List<DetailedTypeDefinition> typeList = table.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> typeList = table.getSystemScope().getAllDetailedTypeDefinitions();
 		ValuedNodeManager manager = new ValuedNodeManager();
 		
 		for (int index = 0; index < typeList.size(); index++) {
@@ -278,7 +278,7 @@ public class ClassAnalysisReporter {
 			SourceCodeLocation start = type.getLocation();
 			SourceCodeLocation end = type.getEndLocation();
 			String id = "" + (index+1);
-			String locationString = start.toFullString();
+			String locationString = start.getUniqueId();
 			String label = type.getSimpleName() + "@" + locationString;
 			int value = end.getLineNumber() - start.getLineNumber() + 1;
 			
@@ -299,10 +299,10 @@ public class ClassAnalysisReporter {
 	public NameTableManager generateNameTableManager(int versionIndex) {
 		String path = systemPath + versionPaths[versionIndex] + "\\";
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 		NameTableManager table = creator.createNameTableManager();
-		parser.releaseAllCompilatinUnits();
+		parser.releaseAllASTs();
 		parser.releaseAllFileContents();
 
 		return table;

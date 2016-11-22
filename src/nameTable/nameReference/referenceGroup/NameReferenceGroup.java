@@ -6,8 +6,7 @@ import java.util.List;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameScope.NameScope;
-
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * A name reference group is used to group all name references for an expression, in order to support to infer the 
@@ -15,6 +14,9 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-2-23
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public abstract class NameReferenceGroup extends NameReference {
 	public static final String OPERATOR_TIMES = "*";
@@ -56,17 +58,14 @@ public abstract class NameReferenceGroup extends NameReference {
 	protected String operator = null;			// The string of the operator, its value is included in the above final strings
 	protected List<NameReference> subreferences = null;		// The references in the group
 	
-	public NameReferenceGroup(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
-
 	public NameReferenceGroup(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
+		kind = NameReferenceKind.NRK_GROUP;
 	}
 
 	@Override
 	public NameReferenceKind getReferenceKind() {
-		return NameReferenceKind.NRK_GROUP;
+		return kind;
 	}
 
 	/**
@@ -134,15 +133,12 @@ public abstract class NameReferenceGroup extends NameReference {
 	 * this reference group
 	 */
 	public List<NameReference> getReferencesAtLeaf() {
-		if (subreferences == null) return null;
 		List<NameReference> result = new ArrayList<NameReference>();
+		if (subreferences == null) return result;
 		
 		for (NameReference reference : subreferences) {
-			if (reference.isGroupReference()) {
-				NameReferenceGroup group = (NameReferenceGroup)reference;
-				List<NameReference> referencesInGroup = group.getReferencesAtLeaf();
-				if (referencesInGroup != null) result.addAll(referencesInGroup);
-			} else result.add(reference);
+			List<NameReference> referenceList = reference.getReferencesAtLeaf();
+			if (referenceList != null) result.addAll(referenceList);
 		}
 		return result;
 	}
@@ -153,8 +149,8 @@ public abstract class NameReferenceGroup extends NameReference {
 		String nameString = name;
 
 		if (nameString.length() > MAX_LENGTH) nameString = nameString.substring(0, MAX_LENGTH) + "...";
-		StringBuffer buffer = new StringBuffer("Name Reference Group [Name = " + nameString + ", location = " + 
-								location.toFullString() + ", scope = " + scope.getScopeName() + "]");
+		StringBuffer buffer = new StringBuffer(kind.id + " Reference [Name = " + nameString + ", location = " + 
+								location.getUniqueId() + ", scope = " + scope.getScopeName() + "]");
 		if (subreferences != null) {
 			buffer.append("\n");
 			for (NameReference reference : subreferences) {
@@ -173,11 +169,12 @@ public abstract class NameReferenceGroup extends NameReference {
 		String nameString = name;
 
 		if (nameString.length() > MAX_LENGTH) nameString = nameString.substring(0, MAX_LENGTH) + "...";
-		StringBuffer buffer = new StringBuffer("Reference Group [Name = " + nameString + ", location = " + 
+		StringBuffer buffer = new StringBuffer(kind.id + " Reference [Name = " + nameString + ", location = " + 
 				location.toString() + ", scope = " + scope.getScopeName() + "]");
 		if (subreferences != null) {
+			buffer.append("\n");
 			for (NameReference reference : subreferences) {
-				buffer.append("\r\n\t" + reference.toString());
+				buffer.append("\t" + reference.toString() + "\n");
 			}
 		}
 		return buffer.toString();
@@ -186,7 +183,7 @@ public abstract class NameReferenceGroup extends NameReference {
 	/**
 	 * Return a better string of the reference for debugging
 	 */
-	public String referenceToString(int indent, boolean includeLiteral) {
+	public String toMultilineString(int indent, boolean includeLiteral) {
 		final int MAX_LENGTH = 20;
 		
 		// Create a space string for indent;
@@ -194,17 +191,17 @@ public abstract class NameReferenceGroup extends NameReference {
 		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
 		String indentString = new String(indentArray);
 
-		StringBuffer buffer = new StringBuffer(indentString + "Reference Group: ");
+		StringBuffer buffer = new StringBuffer(indentString + kind.id + " Reference  ");
 		String nameString = name;
 		if (nameString.length() > MAX_LENGTH) nameString = nameString.substring(0, MAX_LENGTH) + "...";
 		buffer.append("[Name = " + nameString);
 
 		if (indent > 0) buffer.append(" @" + location.toString() + "]\n");
-		else buffer.append(" @" + location.toFullString() + "]\n");
+		else buffer.append(" @" + location.getUniqueId() + "]\n");
 
 		if (subreferences != null) {
 			for (NameReference reference : subreferences) {
-				buffer.append(reference.referenceToString(indent+1, includeLiteral));
+				buffer.append(reference.toMultilineString(indent+1, includeLiteral));
 			}
 		}
 		return buffer.toString();
@@ -222,11 +219,25 @@ public abstract class NameReferenceGroup extends NameReference {
 		if (definition != null) buffer.append("The group [" + nameString + "] is binded to: " + definition.toFullString());
 		else buffer.append("The group [" + nameString + "] has not been resolved!");
 		if (subreferences != null) {
+			buffer.append("\n");
 			for (NameReference reference : subreferences) {
-				buffer.append("\r\n");
-				buffer.append(reference.bindedDefinitionToString());
+				buffer.append(reference.bindedDefinitionToString() + "\n");
 			}
 		}
 		return buffer.toString();
+	}
+	
+	protected boolean isArithematicOperator() {
+		if (operator.equals(OPERATOR_DECREMENT) || operator.equals(OPERATOR_INCREMENT) || operator.equals(OPERATOR_PLUS) || operator.equals(OPERATOR_MINUS) ||
+				operator.equals(OPERATOR_DIVIDE) || operator.equals(OPERATOR_TIMES) || operator.equals(OPERATOR_REMAINDER) || operator.equals(OPERATOR_AND) ||
+				operator.equals(OPERATOR_COMPLEMENT) || operator.equals(OPERATOR_OR) || operator.equals(OPERATOR_XOR)) 
+			return true;
+		else return false;
+	}
+	
+	protected boolean isShiftOperator() {
+		if (operator.equals(OPERATOR_LEFT_SHIFT) || operator.equals(OPERATOR_RIGHT_SHIFT_SIGNED) || 
+				operator.equals(OPERATOR_RIGHT_SHIFT_UNSIGNED)) return true;
+		else return false;
 	}
 }

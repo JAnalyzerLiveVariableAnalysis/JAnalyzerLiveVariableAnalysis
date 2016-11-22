@@ -16,7 +16,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * Create CFG for java source code file
@@ -190,8 +190,8 @@ public class CFGCreator {
 	 * an abstract syntax tree build by the same source file.  
 	 */
 	public ASTNode matchASTNode(ExecutionPoint point) {
-		SourceCodeLocation start = point.getStartPosition();
-		SourceCodeLocation end = point.getEndPosition();
+		SourceCodeLocation start = point.getStartLocation();
+		SourceCodeLocation end = point.getEndLocation();
 		
 		int position = astRoot.getPosition(start.getLineNumber(), start.getColumn());
 		int length = astRoot.getPosition(end.getLineNumber(), end.getColumn()) - position;

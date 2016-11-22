@@ -1,10 +1,14 @@
 package analyzer.valuedNode;
 
 import nameTable.NameTableManager;
+import nameTable.filter.DetailedTypeDefinitionFilter;
+import nameTable.filter.NameDefinitionLocationFilter;
+import nameTable.filter.NameDefinitionNameFilter;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import softwareChange.NameTableComparator;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * A node corresponding to a detailed type definition (i.e. a class definition), and many values (authority, hub, or other 
@@ -12,6 +16,9 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2015/9/18
  * @version 1.0
+ * 
+ * @update 2016/11/14
+ * 		Use NameTableFinder to find definition for binding!
  */
 public class ManyValuedClassNode extends ManyValuedNode {
 	/**
@@ -42,7 +49,8 @@ public class ManyValuedClassNode extends ManyValuedNode {
 		String locationString = parseLocationString();
 		SourceCodeLocation location = SourceCodeLocation.getLocation(locationString);
 		
-		definition = table.findDetailedTypeDefinitionByLocation(simpleName, location);
+		NameTableFilter filter = new DetailedTypeDefinitionFilter(new NameDefinitionNameFilter(new NameDefinitionLocationFilter(location), simpleName));
+		definition = table.findDefinitionByFilter(filter);
 	}
 	
 	/**

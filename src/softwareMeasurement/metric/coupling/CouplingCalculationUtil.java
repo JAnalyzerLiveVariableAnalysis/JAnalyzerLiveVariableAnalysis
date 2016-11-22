@@ -54,7 +54,7 @@ public class CouplingCalculationUtil {
 
 		int sum = 0;
 		for (MethodDefinition method : newMethodList) {
-			List<VariableDefinition> parameterList = method.getParameters();
+			List<VariableDefinition> parameterList = method.getParameterList();
 			if (parameterList != null) {
 				for (VariableDefinition parameter : parameterList) {
 					// We consider the parameterized type in the declaration of the parameter

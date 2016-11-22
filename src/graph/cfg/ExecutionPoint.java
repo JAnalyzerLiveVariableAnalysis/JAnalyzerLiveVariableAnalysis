@@ -2,7 +2,7 @@ package graph.cfg;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The class of the execution point in the source code. 
@@ -23,8 +23,8 @@ public class ExecutionPoint implements CFGNode {
 	private ExecutionPointType type = ExecutionPointType.NORMAL;
 	private ASTNode astNode = null;					// The AST node corresponding to the execution point
 	
-	private SourceCodeLocation startPosition = null;	// the start position in the compilation unit of the execution point
-	private SourceCodeLocation endPosition = null;		// the end position in the compilatin unit of the execution point
+	private SourceCodeLocation startLocation = null;	// the start position in the compilation unit of the execution point
+	private SourceCodeLocation endLocation = null;		// the end position in the compilatin unit of the execution point
 
 	public ExecutionPoint() {
 		
@@ -109,20 +109,20 @@ public class ExecutionPoint implements CFGNode {
 		return "Execution Point: " + id + "[" + label + "]" + "\n\tDescription: [" + description + "]"; 
 	}
 
-	public void setStartPosition(SourceCodeLocation startPosition) {
-		this.startPosition = startPosition;
+	public void setStartLocation(SourceCodeLocation startLocation) {
+		this.startLocation = startLocation;
 	}
 
-	public SourceCodeLocation getStartPosition() {
-		return startPosition;
+	public SourceCodeLocation getStartLocation() {
+		return startLocation;
 	}
 	
-	public void setEndPosition(SourceCodeLocation endPosition) {
-		this.endPosition = endPosition;
+	public void setEndLocation(SourceCodeLocation endLocation) {
+		this.endLocation = endLocation;
 	}
 
-	public SourceCodeLocation getEndPosition() {
-		return endPosition;
+	public SourceCodeLocation getEndLocation() {
+		return endLocation;
 	}
 	
 	/**

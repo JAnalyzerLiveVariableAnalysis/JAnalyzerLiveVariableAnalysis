@@ -1,6 +1,5 @@
 package softwareStructure;
 
-import java.util.List;
 import java.util.TreeSet;
 
 import nameTable.nameDefinition.MethodDefinition;

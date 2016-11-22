@@ -15,8 +15,10 @@ import java.util.TreeSet;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
 import softwareStructure.SoftwareStructManager;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
+import nameTable.NameTableASTBridge;
 import nameTable.NameTableManager;
+import nameTable.creator.NameReferenceCreator;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameReference.MethodReference;
@@ -42,11 +44,11 @@ public class CallGraphCreator
 	 * @param path 源代码根路径
 	 * @return 返回创建好的调用图
 	 */
-	public static AbstractGraph create(NameTableManager manager, SourceCodeParser parser, String id) {
+	public static AbstractGraph create(NameTableManager manager, SourceCodeFileSet parser, String id) {
 		AbstractGraph graph = new CallGraph(id);
 		
 		// 创建调用图顶点和边
-		List<GraphNode> nodes = creatNodes(manager.getRootScope());
+		List<GraphNode> nodes = creatNodes(manager.getSystemScope());
 		List<GraphEdge> edges = createEdges(manager, parser);
 		// 设置调用图顶点和边
 		graph.setNodes(nodes);
@@ -155,7 +157,7 @@ public class CallGraphCreator
 	{		
 		List<GraphNode> nodes = new ArrayList<GraphNode>();
 		
-		List<DetailedTypeDefinition> types = scope.getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> types = scope.getAllDetailedTypeDefinitions();
 		for(DetailedTypeDefinition type : types) {
 			List<MethodDefinition> methods = type.getMethodList();
 			if(methods != null) {
@@ -185,7 +187,7 @@ public class CallGraphCreator
 	 * @param parser 用来将源代码解析成抽象语法树
 	 * @return 返回所有边构成的列表
 	 */
-	private static List<GraphEdge> createEdges(NameTableManager manager, SourceCodeParser parser) 
+	private static List<GraphEdge> createEdges(NameTableManager manager, SourceCodeFileSet parser) 
 	{		
 		List<GraphEdge> edges = new ArrayList<GraphEdge>();
 		
@@ -197,9 +199,9 @@ public class CallGraphCreator
 		System.out.println("Number of CompilationUnit: " + units.size());
 		String systemPath = manager.getSystemPath();
 		for (CompilationUnitScope unit : units) {
-			String unitFileName = unit.getUnitFullName();
+			String unitFileName = unit.getUnitName();
 			
-			CompilationUnit astRoot = parser.findCompilationUnitByUnitFullName(unitFileName);
+			CompilationUnit astRoot = parser.findSourceCodeFileASTRootByFileUnitName(unitFileName);
 			if (astRoot == null) {
 				throw new AssertionError("Can not find the compilation unit for the file: " + (systemPath + unitFileName));
 			}
@@ -215,7 +217,9 @@ public class CallGraphCreator
 					continue;
 				}
 				// 获取调用方法节点，即调用者
-				GraphNode caller = new CallGraphNode((MethodDefinition)(manager.getDefinitionsInASTNode(cfg.getMethod(), astRoot, unitFileName)).get(0));
+				NameTableASTBridge bridge = new NameTableASTBridge(manager);
+				MethodDefinition methodDefinition = bridge.findDefinitionForMethodDeclaration(unitFileName, cfg.getMethod()); 
+				GraphNode caller = new CallGraphNode(methodDefinition);
 				List<GraphNode> possibleCallees = null;
 				
 				List<GraphNode> nodes = cfg.getAllNodes();
@@ -224,8 +228,9 @@ public class CallGraphCreator
 						ExecutionPoint point = (ExecutionPoint)node;
 						if (point.isVirtual()) continue;
 						else {
-							NameReference reference = manager.createReferenceForExecutionPoint(point);
-							if (reference != null) {
+							NameReferenceCreator referenceCreator = new NameReferenceCreator(manager);
+							List<NameReference> referenceList = referenceCreator.createReferencesForASTNode(unitFileName, point.getAstNode());
+							for (NameReference reference : referenceList) {
 								reference.resolveBinding();
 								// 获取一个调用点可能的被调用方法节点，即可能的被调用者
 								possibleCallees = getPossibleCallees(reference);
@@ -243,6 +248,8 @@ public class CallGraphCreator
 					}
 				}
 			}
+			parser.releaseFileContent(unitFileName);
+			parser.releaseAST(unitFileName);
 		}
 		return edges;
 	}
@@ -258,25 +265,6 @@ public class CallGraphCreator
 		List<MethodReference> methodReferences = new ArrayList<MethodReference>();
 		
 		if (reference.isGroupReference()) {
-//			List<NameReference> classInstanceCreationReferences = getAllClassInstanceCreationReferences((NameReferenceGroup)reference);
-//			if(classInstanceCreationReferences.size()>0)
-//			{
-//				//System.out.println(getAllClassInstanceCreationReferences((NameReferenceGroup)reference));
-//				for (NameReference classInstanceCreationReference : classInstanceCreationReferences) 
-//				{
-//					NRGClassInstanceCreation classInstanceCreationRef = (NRGClassInstanceCreation)classInstanceCreationReference;
-//					//System.out.println(classInstanceCreationRef.bindedDefinitionToString());
-//					//System.out.println(classInstanceCreationRef.getDefinition().getSimpleName());
-//					//System.out.println(classInstanceCreationRef.getDefinition().getScope().findAllDefinitionsByName(classInstanceCreationRef.getDefinition().getSimpleName()));
-//					classInstanceCreationRef.getSubReference().get(0).getLocation();
-//					MethodReference sMethodReference = new MethodReference(classInstanceCreationRef.getSubReference().get(0).getName(), classInstanceCreationRef.getSubReference().get(0).getLocation());
-//					sMethodReference.resolveBinding();
-//					System.out.println(sMethodReference.bindedDefinitionToString());
-//					System.out.println(classInstanceCreationRef.getSubReference().get(0));
-//					System.out.println(classInstanceCreationRef.getSubReference().get(0).getLocation().getFullFileName() + classInstanceCreationRef.getSubReference().get(0).getLocation());
-//				}
-//			}
-			
 			List<NameReference> referencesInGroup = ((NameReferenceGroup)reference).getReferencesAtLeaf();
 			for (NameReference ref : referencesInGroup) {
 				if (ref.isMethodReference()) {
@@ -288,7 +276,7 @@ public class CallGraphCreator
 		} else return null;
 		
 		for(MethodReference methodRef : methodReferences) {
-			List<MethodDefinition> methodList = methodRef.getAlternatives();
+			List<MethodDefinition> methodList = methodRef.getAlternativeList();
 			if (methodList != null && methodList.size() >= 1) {
 				for (MethodDefinition method : methodList) {
 					possibleCallees.add(new CallGraphNode(method));

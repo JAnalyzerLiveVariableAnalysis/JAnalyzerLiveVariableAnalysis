@@ -164,7 +164,8 @@ public class QualitasSourceFileExtractor {
 		String[] args = { extractProgram, "x", archiveFile, "-o"+destPath, "-y" };
 
 		try {
-			Process p = rt.exec(args); 
+			rt.exec(args);
+//			Process p = rt.exec(args); 
 //			System.out.println("Exit value: " + p.exitValue());
 //			p.waitFor();
 //		} catch (InterruptedException exc) {

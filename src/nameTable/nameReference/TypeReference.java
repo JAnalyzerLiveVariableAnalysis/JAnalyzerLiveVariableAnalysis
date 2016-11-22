@@ -1,31 +1,34 @@
 package nameTable.nameReference;
 
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The class represents a type reference
  * <p>Note that we store the dimensions of an array type in a type reference not in a type definition, i.e. 
  * there is no type definition for an array type. We just create type definition for the base type of an array 
  * type
+ * 
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class TypeReference extends NameReference {
 	// If the type reference refers to a array type, we save its dimension
-	private int dimension = 0;
+	protected int dimension = 0;
+	protected TypeReferenceKind typeKind = TypeReferenceKind.TRK_SIMPLE;
 
 	public TypeReference(String name, SourceCodeLocation location,	NameScope scope) {
 		super(name, location, scope, NameReferenceKind.NRK_TYPE);
 	}
 
-	public TypeReference(String name, SourceCodeLocation location) {
-		super(name, location, NameReferenceKind.NRK_TYPE);
-	}
 	public TypeReference(TypeReference other) {
 		super(other.name, other.location, other.scope, NameReferenceKind.NRK_TYPE);
 		dimension = other.dimension;
+		definition = other.definition;
 	}
 	
 	/**
@@ -51,10 +54,31 @@ public class TypeReference extends NameReference {
 	}
 
 	/**
+	 * Set the type reference kind
+	 */
+	public void setTypeKind(TypeReferenceKind typeKind) {
+		this.typeKind = typeKind;
+	}
+
+	/**
+	 * Get the type reference kind
+	 */
+	public TypeReferenceKind getTypeKind() {
+		return typeKind;
+	}
+	
+	/**
+	 * Test if the type reference is a named qualified type reference
+	 */
+	public boolean isNamedQualifiedType() {
+		return typeKind == TypeReferenceKind.TRK_QUALIFIED;
+	}
+
+	/**
 	 * Test if the type reference is a qualified type reference
 	 */
 	public boolean isQualifiedType() {
-		return false;
+		return typeKind == TypeReferenceKind.TRK_QUALIFIED;
 	}
 	
 	/**
@@ -62,7 +86,7 @@ public class TypeReference extends NameReference {
 	 * @update: 2015/07/06
 	 */
 	public boolean isParameterizedType() {
-		return false;
+		return typeKind == TypeReferenceKind.TRK_PARAMETERIZED;
 	}
 	
 	/**
@@ -77,11 +101,7 @@ public class TypeReference extends NameReference {
 	public boolean resolveBinding() {
 		if (definition != null) return true;
 		
-		if (name.equals(NameReferenceLabel.TYPE_BOOLEAN) || name.equals(NameReferenceLabel.TYPE_CHAR) || 
-				name.equals(NameReferenceLabel.TYPE_BYTE) || name.equals(NameReferenceLabel.TYPE_DOUBLE) || 
-				name.equals(NameReferenceLabel.TYPE_INT) || name.equals(NameReferenceLabel.TYPE_LONG) || 
-				name.equals(NameReferenceLabel.TYPE_FLOAT) || name.equals(NameReferenceLabel.TYPE_SHORT) ||
-				name.equals(NameReferenceLabel.TYPE_VOID) || name.equals(NameReferenceLabel.TYPE_STRING)) {
+		if (NameReferenceLabel.isPrimitiveTypeName(name) || NameReferenceLabel.isAutoImportedTypeName(name)) {
 			// For primitive type, we resolve it in the system scope!
 			NameScope currentScope = scope;
 			while (currentScope != null) {
@@ -99,8 +119,8 @@ public class TypeReference extends NameReference {
 		for (int count = 0; count < dimension; count++) {
 			arrayString = arrayString + "[]";
 		}
-		return "Reference [Type Name = " + name + arrayString + ", location = " + 
-				location.toFullString() + ", scope = " + scope.getScopeName() + "]";
+		return kind.id + " Reference [Name = " + name + arrayString + ", location = " + 
+				location.getUniqueId() + ", scope = " + scope.getScopeName() + "]";
 	}
 
 	/* (non-Javadoc)
@@ -112,7 +132,7 @@ public class TypeReference extends NameReference {
 		for (int count = 0; count < dimension; count++) {
 			arrayString = arrayString + "[]";
 		}
-		return "Reference [Type Name = " + name + arrayString + " @ " + location.toFullString() + "]";
+		return kind.id + " Reference [Type Name = " + name + arrayString + " @ " + location.getUniqueId() + "]";
 	}
 	
 	public String toDelcarationString() {
@@ -126,16 +146,16 @@ public class TypeReference extends NameReference {
 	/**
 	 * Return a better string of the reference for debugging
 	 */
-	public String referenceToString(int indent, boolean includeLiteral) {
+	public String toMultilineString(int indent, boolean includeLiteral) {
 		// Create a space string for indent;
 		char[] indentArray = new char[indent];
 		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
 		String indentString = new String(indentArray);
 
-		StringBuffer buffer = new StringBuffer(indentString + "Reference: " + "[Type Name = " + name);
+		StringBuffer buffer = new StringBuffer(indentString + kind.id + " Reference: " + "[Type Name = " + name);
 		for (int count = 0; count < dimension; count++) buffer.append("[]");
 		if (indent > 0) buffer.append(" @" + location.toString() + "]\n");
-		else buffer.append(" @" + location.toFullString() + "]\n");
+		else buffer.append(" @" + location.getUniqueId() + "]\n");
 			
 		return buffer.toString();		
 	}

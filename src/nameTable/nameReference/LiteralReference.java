@@ -2,7 +2,7 @@ package nameTable.nameReference;
 
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * <p>A class to represent literal reference. A literal is not a reference indeed. However, if we want to infer the 
@@ -11,20 +11,19 @@ import util.SourceCodeLocation;
  * create any reference for the single key word "this", such as in the method call fun(this)
  * <p>A literal reference will be bind to a type definition correspond to its type, and for "this" literal reference
  * it will be bind to the type definition enclosed the reference
+ * 
  * @author Zhou Xiaocong
  * @since 2013-2-27
  * @version 1.0
+ * 
+ * @update 2015/11/5
+ * 		Refactor the class according to the design document
  */
 public class LiteralReference extends NameReference {
 	private String literal = null;		// Store the literal of the reference
 										// while the name of the reference stores the type name of the literal
 										// For "this" literal reference, both store the key word "this"
 	
-	public LiteralReference(String literal, String typeName, SourceCodeLocation location) {
-		super(typeName, location, NameReferenceKind.NRK_LITERAL);
-		this.literal = literal;
-	}
-
 	public LiteralReference(String literal, String typeName, SourceCodeLocation location, NameScope scope) {
 		super(typeName, location, scope, NameReferenceKind.NRK_LITERAL);
 		this.literal = literal;

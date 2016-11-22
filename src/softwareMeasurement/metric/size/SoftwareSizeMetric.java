@@ -5,7 +5,7 @@ import nameTable.nameScope.NameScope;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.metric.SoftwareStructMetric;
 import softwareStructure.SoftwareStructManager;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
 
 /**
  * @author Zhou Xiaocong
@@ -15,7 +15,7 @@ import util.SourceCodeParser;
 public abstract class SoftwareSizeMetric implements SoftwareStructMetric {
 	protected SoftwareStructManager structManager = null;
 	protected NameTableManager tableManager = null;
-	protected SourceCodeParser parser = null;
+	protected SourceCodeFileSet parser = null;
 	
 	protected NameScope objectScope = null;
 	
@@ -23,7 +23,7 @@ public abstract class SoftwareSizeMetric implements SoftwareStructMetric {
 	public void setSoftwareStructManager(SoftwareStructManager structManager) {
 		this.structManager = structManager;
 		tableManager = structManager.getNameTableManager();
-		parser = tableManager.getSouceCodeParser();
+		parser = tableManager.getSouceCodeFileSet();
 	}
 
 	@Override

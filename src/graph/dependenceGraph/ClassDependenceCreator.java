@@ -17,7 +17,9 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import nameTable.NameTableASTBridge;
 import nameTable.NameTableManager;
+import nameTable.creator.NameReferenceCreator;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
@@ -28,7 +30,8 @@ import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameReference.referenceGroup.NameReferenceGroup;
 import nameTable.nameScope.CompilationUnitScope;
-import util.SourceCodeParser;
+import sourceCodeAST.SourceCodeFileSet;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * @author Zhou Xiaocong
@@ -36,7 +39,7 @@ import util.SourceCodeParser;
  * @version 1.0
  */
 public class ClassDependenceCreator {
-	private SourceCodeParser parser = null;
+	private SourceCodeFileSet parser = null;
 	private NameTableManager nameTableManager = null;
 	
 	private CompilationUnit currentASTRoot = null;
@@ -50,7 +53,7 @@ public class ClassDependenceCreator {
 	/**
 	 * Note: for creating the class dependence graph, the name definition table should have been created  
 	 */
-	public ClassDependenceCreator(SourceCodeParser parser, NameTableManager nameTableManager) {
+	public ClassDependenceCreator(SourceCodeFileSet parser, NameTableManager nameTableManager) {
 		this.parser = parser;
 		this.nameTableManager = nameTableManager;
 	}
@@ -96,7 +99,7 @@ public class ClassDependenceCreator {
 		if (packages == null) units = nameTableManager.getAllCompilationUnitScopes();
 		else {
 			for (PackageDefinition packageDef : packages) {
-				units.addAll(packageDef.getCompilationUnitList());
+				units.addAll(packageDef.getCompilationUnitScopeList());
 			}
 		}
 		if (units == null || units.size() <= 0) return null;
@@ -112,12 +115,12 @@ public class ClassDependenceCreator {
 		createAllNodes();
 		
 		for (CompilationUnitScope unit : units) {
-			currentUnitFileName = unit.getUnitFullName();
+			currentUnitFileName = unit.getUnitName();
 
 //			if (!unitFileName.contains("AnyImplHelper")) continue;
 			System.out.println("Scan file " + currentUnitFileName);
 
-			currentASTRoot = parser.findCompilationUnitByUnitFullName(currentUnitFileName);
+			currentASTRoot = parser.findSourceCodeFileASTRootByFileUnitName(currentUnitFileName);
 			if (currentASTRoot == null) throw new AssertionError("Can not find the compilation unit for the file: " + (systemPath + currentUnitFileName));
 			
 			cfgCreator = new CFGCreator(currentUnitFileName, currentASTRoot);
@@ -131,7 +134,8 @@ public class ClassDependenceCreator {
 				if (classDeclaration.isInterface()) continue;
 				if (!classDeclaration.isPackageMemberTypeDeclaration()) continue;
 				
-				currentClass = nameTableManager.findDetailedTypeDefinitionByDeclaration(classDeclaration, currentASTRoot, currentUnitFileName);
+				NameTableASTBridge bridge = new NameTableASTBridge(nameTableManager);
+				currentClass = bridge.findDefinitionForTypeDeclaration(currentUnitFileName, classDeclaration);
 				if (currentClass == null) throw new AssertionError("Internal error: can not find detailed type definition for " + classDeclaration.getName().getFullyQualifiedName());
 				currentClassNode = currentCDG.findNodeByDefinition(currentClass);
 				if (currentClassNode == null) throw new AssertionError("Internal error: can not find dependence node for " + currentClass.toFullString());
@@ -143,14 +147,14 @@ public class ClassDependenceCreator {
 			cfgCreator = null;
 			typeList = null;
 			currentASTRoot = null;
-			parser.releaseCurrentFileContents();
-			parser.releaseCurrentCompilatinUnits();
+			parser.releaseFileContent(currentUnitFileName);
+			parser.releaseAST(currentUnitFileName);
 		}
 		return currentCDG;
 	}
 	
 	void createAllNodes() {
-		List<DetailedTypeDefinition> types = nameTableManager.getRootScope().getAllDetailedTypeDefinition();
+		List<DetailedTypeDefinition> types = nameTableManager.getSystemScope().getAllDetailedTypeDefinitions();
 		
 		for (DetailedTypeDefinition type : types) {
 			currentCDG.addNode(new ClassDependenceNode(type));
@@ -190,7 +194,9 @@ public class ClassDependenceCreator {
 	 * definitions which are binded to any type reference occurs in the method (include its return type, parameters and method body)!  
 	 */
 	void findDependencesInMethod(MethodDeclaration methodDeclaration) {
-		MethodDefinition methodDef = nameTableManager.findMethodDefinitionByDeclaration(methodDeclaration, currentClass, currentASTRoot, currentUnitFileName);
+		NameTableASTBridge bridge = new NameTableASTBridge(nameTableManager);
+		SourceCodeLocation methodLocation = SourceCodeLocation.getStartLocation(methodDeclaration, currentASTRoot, currentUnitFileName);
+		MethodDefinition methodDef = bridge.findDefinitionForMethodDeclaration(currentClass, methodLocation, methodDeclaration);
 		if (methodDef == null) throw new AssertionError("Internal error: can not find method definition for a method declaration " + methodDeclaration.toString());
 
 		// Find possible dependence relation in return type of the method
@@ -200,7 +206,7 @@ public class ClassDependenceCreator {
 		}
 		
 		// Find possible dependence relations in parameters
-		List<VariableDefinition> paraList = methodDef.getParameters();
+		List<VariableDefinition> paraList = methodDef.getParameterList();
 		if (paraList != null) {
 			for (VariableDefinition parameter : paraList) {
 				TypeReference paraTypeRef = parameter.getType();
@@ -221,7 +227,7 @@ public class ClassDependenceCreator {
 				if (point.isVirtual()) continue;
 				
 				// Find possible dependence relations in local variable declaration in an execution point
-				List<NameDefinition> definitions = nameTableManager.getDefinitionsInExecutionPoint(point);
+				List<NameDefinition> definitions = bridge.getAllDefinitionsInASTNode(currentUnitFileName, point.getAstNode());
 				if (definitions != null) {
 					for (NameDefinition definition : definitions) {
 						if (definition.isVariableDefinition()) {
@@ -233,8 +239,9 @@ public class ClassDependenceCreator {
 				}
 				
 				// Find possible dependence relations in the reference of an execution point, which may be a reference group.
-				NameReference reference = nameTableManager.createReferenceForExecutionPoint(point);
-				if (reference != null) {
+				NameReferenceCreator referenceCreator = new NameReferenceCreator(nameTableManager);
+				List<NameReference> referenceList = referenceCreator.createReferencesForASTNode(currentUnitFileName, point.getAstNode());
+				for (NameReference reference : referenceList) {
 					if (reference.resolveBinding()) addPossibleDependenceInReference(reference);
 				}
 			}
@@ -248,7 +255,10 @@ public class ClassDependenceCreator {
 	 * <p>Note a field declaration may define many fields. 
 	 */
 	void findDependencesInField(FieldDeclaration field) {
-		List<FieldDefinition> fieldsInType = nameTableManager.findFieldDefinitionsByDeclaration(field, currentClass, currentASTRoot, currentUnitFileName);
+		NameTableASTBridge bridge = new NameTableASTBridge(nameTableManager);
+		SourceCodeLocation startLocation = SourceCodeLocation.getStartLocation(field, currentASTRoot, currentUnitFileName);
+		SourceCodeLocation endLocation = SourceCodeLocation.getEndLocation(field, currentASTRoot, currentUnitFileName);
+		List<FieldDefinition> fieldsInType = bridge.findDefinitionsForFieldDeclaration(currentClass, startLocation, endLocation, field);
 		if (fieldsInType == null) return;
 		// Find possible dependence relationship from the type of the fields, the current class is dependent on the type of the fields!
 		for (FieldDefinition fieldDef : fieldsInType) {
@@ -262,7 +272,8 @@ public class ClassDependenceCreator {
 		for (VariableDeclarationFragment variable : variables) {
 			Expression initExp = variable.getInitializer();
 			if (initExp != null) {
-				NameReference reference = nameTableManager.createReferenceForASTNode(initExp, currentASTRoot, currentUnitFileName);
+				NameReferenceCreator referenceCreator = new NameReferenceCreator(nameTableManager);
+				NameReference reference = referenceCreator.createReferenceForExpressionASTNode(currentUnitFileName, initExp);
 				if (reference != null) findDependencesInReferences(reference);
 			}
 		}

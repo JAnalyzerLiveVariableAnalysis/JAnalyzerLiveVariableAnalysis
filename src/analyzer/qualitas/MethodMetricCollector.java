@@ -6,21 +6,21 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import nameTable.NameDefinitionVisitor;
-import nameTable.NameTableFilter;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameScope.SystemScope;
+import nameTable.visitor.NameDefinitionVisitor;
 import softwareMeasurement.MethodMeasurement;
 import softwareMeasurement.measure.MeasureObjectKind;
 import softwareMeasurement.measure.SoftwareMeasure;
 import softwareMeasurement.measure.SoftwareMeasureIdentifier;
 import softwareStructure.SoftwareStructManager;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 /**
  * @author Zhou Xiaocong
@@ -63,7 +63,7 @@ public class MethodMetricCollector {
 	public static void collectQualitasMethodMeasure(String path, PrintWriter writer) {
 		List<SoftwareMeasure> measureList = getAvailableMethodMeasureList();
 		
-		SourceCodeParser parser = new SourceCodeParser(path);
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
 
 		Debug.setStart("Begin creating system, path = " + path);
@@ -75,7 +75,7 @@ public class MethodMetricCollector {
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		visitor.setFilter(new MethodFilter());
-		SystemScope rootScope = manager.getRootScope();
+		SystemScope rootScope = manager.getSystemScope();
 		
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();

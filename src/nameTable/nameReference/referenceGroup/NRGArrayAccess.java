@@ -1,6 +1,6 @@
 package nameTable.nameReference.referenceGroup;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameScope.NameScope;
@@ -11,15 +11,14 @@ import nameTable.nameScope.NameScope;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGArrayAccess extends NameReferenceGroup{
 
 	public NRGArrayAccess(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
-	}
-
-	public NRGArrayAccess(String name, SourceCodeLocation location) {
-		super(name, location);
 	}
 
 	@Override
@@ -37,7 +36,7 @@ public class NRGArrayAccess extends NameReferenceGroup{
 		// Bind the group to the type definition of the variable definition in the first operand of 
 		// the array access expression
 		NameReference firstRef = subreferences.get(0);
-		TypeDefinition resultTypeDef = getResultTypeDefinition(firstRef);
+		TypeDefinition resultTypeDef = firstRef.getResultTypeDefinition();
 		bindTo(resultTypeDef);
 
 		return isResolved();

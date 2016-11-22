@@ -1,6 +1,5 @@
 package nameTable.nameDefinition;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,20 +9,23 @@ import nameTable.nameReference.ParameterizedTypeReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
- * The class represent a field definition
+ * The class represents a field definition
  * @author Zhou Xiaocong
  * @since 2013-2-21
  * @version 1.0
  * 
  * @update 2013-12-29
  * 		Add method getTypeDefinition()
+ * 
+ * @update 2015/11/5
+ * 		Refactor the class according to the design document
  */
 public class FieldDefinition extends NameDefinition {
 	private TypeReference type = null;		// The type of the field
-	private int flag = 0;					// The modifier flag of the field
+	private int modifier = 0;					// The modifier flag of the field
 
 	public FieldDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope) {
 		super(simpleName, fullQualifiedName, location, scope);
@@ -49,6 +51,7 @@ public class FieldDefinition extends NameDefinition {
 	 */
 	public TypeDefinition getTypeDefinition() {
 		if (type == null) return null;
+		
 		type.resolveBinding();
 		return (TypeDefinition)type.getDefinition();
 	}
@@ -90,25 +93,6 @@ public class FieldDefinition extends NameDefinition {
 	}
 	
 	/**
-	 * Display all definitions to a string for debugging
-	 */
-	@Override
-	public void printDefinitions(PrintWriter writer, int indent) {
-		// Create a space string for indent;
-		char[] indentArray = new char[indent];
-		for (int index = 0; index < indentArray.length; index++) indentArray[index] = '\t';
-		String indentString = new String(indentArray);
-
-		StringBuffer buffer = new StringBuffer(indentString + "Field: ");
-		String typeString = type.getName();
-		for (int count = 0; count < type.getDimension(); count++) typeString += "[]";
-		buffer.append(typeString + " " + simpleName + "\n");
-
-		writer.print(buffer);
-	}
-	
-	
-	/**
 	 * Display a field definition as "type[] fieldName"
 	 */
 	public String toDeclarationString() {
@@ -123,41 +107,41 @@ public class FieldDefinition extends NameDefinition {
 	 * Set the modifier flag 
 	 */
 	public void setModifierFlag(int flag) {
-		this.flag = flag;
+		this.modifier = flag;
 	}
 	
 	/**
 	 * Test if the class is public according to the modifier flag
 	 */
 	public boolean isPublic() {
-		return Modifier.isPublic(flag);
+		return Modifier.isPublic(modifier);
 	}
 
 	/**
 	 * Test if the class is private according to the modifier flag
 	 */
 	public boolean isPrivate() {
-		return Modifier.isPrivate(flag);
+		return Modifier.isPrivate(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isProtected() {
-		return Modifier.isProtected(flag);
+		return Modifier.isProtected(modifier);
 	}
 
 	/**
 	 * Test if the class is static according to the modifier flag
 	 */
 	public boolean isStatic() {
-		return Modifier.isStatic(flag);
+		return Modifier.isStatic(modifier);
 	}
 
 	/**
 	 * Test if the class is protected according to the modifier flag
 	 */
 	public boolean isFinal() {
-		return Modifier.isFinal(flag);
+		return Modifier.isFinal(modifier);
 	}
 }

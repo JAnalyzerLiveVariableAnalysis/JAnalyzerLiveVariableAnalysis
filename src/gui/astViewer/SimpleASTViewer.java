@@ -26,13 +26,13 @@ public class SimpleASTViewer {
 		this.sourceCode = sourceCode;
 	}
 	
-	@SuppressWarnings("deprecation")
+	@SuppressWarnings("unchecked")
 	public void parseSourceCode() {
 		if (sourceCode == null) return;
 		
 		SimpleProgressMonitor pm = new SimpleProgressMonitor(parent);
 		
-		ASTParser parser = ASTParser.newParser(AST.JLS4);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		
 		@SuppressWarnings("rawtypes")

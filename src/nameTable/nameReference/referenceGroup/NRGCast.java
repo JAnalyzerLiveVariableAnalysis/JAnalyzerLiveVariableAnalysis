@@ -4,7 +4,7 @@ import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to type cast expression. 
@@ -12,13 +12,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGCast extends NameReferenceGroup {
-
-	public NRGCast(String name, SourceCodeLocation location) {
-		super(name, location);
-		// TODO Auto-generated constructor stub
-	}
 
 	public NRGCast(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);

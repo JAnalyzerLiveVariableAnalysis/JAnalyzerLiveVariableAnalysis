@@ -356,12 +356,12 @@ class SoftwareStructFileManager {
 					entry.addParameterType(type);
 				} else {
 					// This type must be an enumeration type
-					TypeDefinition type = (TypeDefinition)tableManager.getRootScope().findDefinitionById(typeId, true);
+					TypeDefinition type = (TypeDefinition)tableManager.findDefinitionById(typeId);
 					entry.addParameterType(type);
 				}
 			} else {
 				// This type must be a simple type, it should be found in the root scope (system scope) of the name table;
-				TypeDefinition type = (TypeDefinition)tableManager.getRootScope().findDefinitionById(typeId, false);
+				TypeDefinition type = (TypeDefinition)tableManager.findDefinitionById(typeId);
 				entry.addParameterType(type);
 			}
 		}

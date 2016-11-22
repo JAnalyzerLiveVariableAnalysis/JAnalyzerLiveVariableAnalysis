@@ -14,8 +14,9 @@ import java.util.Scanner;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
+import sourceCodeAST.SourceCodeFile;
+import sourceCodeAST.SourceCodeFileSet;
 import util.Debug;
-import util.SourceCodeParser;
 
 public class TestCFGCreator {
 
@@ -68,10 +69,9 @@ public class TestCFGCreator {
 	
 	public static void testMatchASTNode(String path, PrintWriter output) {
 
-		SourceCodeParser parser = new SourceCodeParser(path);
-		parser.toGetFirstParsedFile();
-		while (parser.hasParsedFileInfo()) {
-			String fileName = parser.getCurrentUnitFullName();
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
+		for (SourceCodeFile codeFile : parser) {
+			String fileName = parser.getFileUnitName(codeFile);
 			
 			System.out.println("Scan file: " + fileName);
 //			if (!fileName.contains("RECompiler")) {
@@ -79,7 +79,7 @@ public class TestCFGCreator {
 //				continue;
 //			}
 //			String fileContent = parser.getCurrentFileContent();
-			CompilationUnit root = parser.getCurrentCompilationUnit();
+			CompilationUnit root = codeFile.getASTRoot();
 		
 			CFGCreator creator = new CFGCreator(fileName, root);
 			List<ControlFlowGraph> cfgs = creator.create();
@@ -101,7 +101,7 @@ public class TestCFGCreator {
 						ASTNode matchedNode = creator.matchASTNode(point);
 						
 						if (astNode == matchedNode) {
-							Debug.println("Matched AST node for execution point [" + point.getDescription() + "] at [" + point.getStartPosition() + "]!");
+							Debug.println("Matched AST node for execution point [" + point.getDescription() + "] at [" + point.getStartLocation() + "]!");
 						} else {
 							Debug.println("DO NOT matched AST node for execution point [" + point.getDescription() + "]!");
 							if (astNode != null) Debug.println("\tAST Node from point: " + astNode.toString());
@@ -113,9 +113,8 @@ public class TestCFGCreator {
 				}
 			}
 			
-			parser.releaseCurrentCompilatinUnits();
-			parser.releaseCurrentFileContents();
-			parser.toGetNextParsedFile();
+			codeFile.releaseAST();
+			codeFile.releaseFileContent();
 		}
 		
 		output.close();

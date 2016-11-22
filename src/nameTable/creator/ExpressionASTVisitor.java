@@ -1,13 +1,17 @@
 package nameTable.creator;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameReference.LiteralReference;
 import nameTable.nameReference.MethodReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
 import nameTable.nameReference.NameReferenceLabel;
 import nameTable.nameReference.TypeReference;
+import nameTable.nameReference.ParameterizedTypeReference;
 import nameTable.nameReference.ValueReference;
 import nameTable.nameReference.referenceGroup.NRGArrayAccess;
 import nameTable.nameReference.referenceGroup.NRGArrayCreation;
@@ -30,8 +34,10 @@ import nameTable.nameReference.referenceGroup.NRGTypeLiteral;
 import nameTable.nameReference.referenceGroup.NRGVariableDeclaration;
 import nameTable.nameReference.referenceGroup.NameReferenceGroup;
 import nameTable.nameScope.NameScope;
+import nameTable.nameScope.NameScopeKind;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.ArrayCreation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
@@ -40,12 +46,14 @@ import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.CastExpression;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
+import org.eclipse.jdt.core.dom.CreationReference;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NullLiteral;
@@ -57,13 +65,15 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * Visit an expression, create name reference for the expression. Note that the name reference created by 
@@ -72,52 +82,51 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-2-23
  * @version 1.0
+ * 
+ * @update 2016/11/11
+ * 		Refactor the class according to the design document
  */
 public class ExpressionASTVisitor extends ASTVisitor {
 	// The result reference corresponding to the expression is the last reference in the travel.
 	// Note that the result reference may be a reference group!
-	private NameReference lastReference = null;
-	private boolean createReferenceForLiteral = false;
+	protected NameReference lastReference = null;
+	protected boolean createReferenceForLiteral = false;
 	
 	protected NameScope scope = null;
 	protected TypeASTVisitor typeVisitor = null;
 
-	protected String unitFullName = null;
-	protected CompilationUnit root = null;
+	protected CompilationUnitFile unitFile = null;
+	protected NameTableCreator creator = null;
 	
-	public ExpressionASTVisitor(String unitFullName, CompilationUnit root, NameScope scope) {
-		this.unitFullName = unitFullName;
-		this.root = root;
-		
+	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope scope) {
+		this.creator = creator;
+		this.unitFile = unitFile;
 		this.scope = scope;
-		typeVisitor = new TypeASTVisitor(unitFullName, root, scope);
+		typeVisitor = new TypeASTVisitor(unitFile, scope);
 	}
 	
-	public ExpressionASTVisitor(String unitFullName, CompilationUnit root, NameScope scope, boolean createReferenceForLiteral) {
-		this.unitFullName = unitFullName;
-		this.root = root;
-		this.scope = scope;
-		this.createReferenceForLiteral = createReferenceForLiteral;
-		
-		typeVisitor = new TypeASTVisitor(unitFullName, root, scope);
-	}
-
 	public NameReference getResult() {
 		return lastReference;
 	}
 	
+	public void reset(CompilationUnitFile unitFile, NameScope scope) {
+		this.unitFile = unitFile;
+		this.scope = scope;
+		lastReference = null;
+		createReferenceForLiteral = false;
+	}
+
 	public void reset(NameScope scope) {
 		lastReference = null;
 		this.scope = scope;
 		createReferenceForLiteral = false;
 	}
 
-	public void reset(NameScope scope, boolean createReferenceForLiteral) {
+	public void reset() {
 		lastReference = null;
-		this.scope = scope;
-		this.createReferenceForLiteral = createReferenceForLiteral;
+		createReferenceForLiteral = false;
 	}
-
+	
 	/**
 	 * ArrayAccess: Expression[Expression]
 	 */
@@ -125,7 +134,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(ArrayAccess node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGArrayAccess(name, location, scope);
 
 		// Visit the array expression of the node
@@ -153,12 +162,12 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(ArrayCreation node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGArrayCreation(name, location, scope);
 
 		// Visit the type of the node
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		
@@ -193,7 +202,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(ArrayInitializer node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGArrayInitializer(name, location, scope);
 		
 		// Visit the initial expressions of the node
@@ -215,7 +224,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(Assignment node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGAssignment(name, location, scope);
 		
 		// Set the operator of the reference group
@@ -245,12 +254,12 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(CastExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGCast(name, location, scope);
 
 		// Visit the type of the node
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		// Add type reference to the group
@@ -274,7 +283,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(ClassInstanceCreation node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGClassInstanceCreation(name, location, scope);
 
 		// Visit the possible expressions of the node
@@ -286,14 +295,19 @@ public class ExpressionASTVisitor extends ASTVisitor {
 
 		// Visit the type of the node
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		// Add type reference to the group as the return type of constructor invocation
 		referenceGroup.addSubReference(typeRef);
 
 		String methodName = typeRef.getName();
-		location = SourceCodeLocation.getStartLocation(type, root, unitFullName);
+		// For parameterized type, the name of its constructor is the private type reference name
+		if (typeRef.isParameterizedType()) {
+			ParameterizedTypeReference paraType = (ParameterizedTypeReference)typeRef;
+			methodName = paraType.getPrimaryType().getName();
+		}
+		location = SourceCodeLocation.getStartLocation(type, unitFile.root, unitFile.unitName);
 		MethodReference methodRef = new MethodReference(methodName, location, scope);
 		
 		// Add method (constructor invocation) reference to the group
@@ -303,13 +317,42 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		createReferenceForLiteral = true;
 		// Visit the argument list of the node
 		List<Expression> arguments = node.arguments();
+		List<NameReference> argumentRefList = new ArrayList<NameReference>();
 		for (Expression arg : arguments) {
 			arg.accept(this);
-			referenceGroup.addSubReference(lastReference);
+			argumentRefList.add(lastReference);
 		}
+		methodRef.setArgumentList(argumentRefList);
 		createReferenceForLiteral = oldCreateReferenceForLiteral;
 		
-		// We ignore the anonymous class declaration in the node!
+		List<Type> typeArguments = node.typeArguments();
+		List<TypeReference> typeArgumentRefList = new ArrayList<TypeReference>();
+		for (Type typeArg : typeArguments) {
+			typeVisitor.reset(scope);
+			typeArg.accept(typeVisitor);
+			TypeReference typeArgRef = typeVisitor.getResult();
+			typeArgumentRefList.add(typeArgRef);
+		}
+		methodRef.setTypeArgumentList(typeArgumentRefList);
+
+		// Process the anonymous class declaration in the node!
+		AnonymousClassDeclaration anonymousClass = node.getAnonymousClassDeclaration();
+		if (anonymousClass != null) {
+			String qualifier = scope.getScopeName();
+			// Find the full qualified name of the enclosing method or type as the name qualifier of this anonymous class.
+			NameScope betterScope = scope;
+			while (betterScope.getEnclosingScope() != null) {
+				if (betterScope.getScopeKind() == NameScopeKind.NSK_METHOD) {
+					qualifier = ((MethodDefinition)betterScope).getFullQualifiedName();
+					break;
+				} else if (betterScope.getScopeKind() == NameScopeKind.NSK_TYPE) {
+					qualifier = ((DetailedTypeDefinition)betterScope).getFullQualifiedName();
+					break;
+				}
+				betterScope = betterScope.getEnclosingScope();
+			}
+			creator.scan(unitFile, qualifier, anonymousClass, scope, typeRef);
+		}
 		
 		// The reference group is the result reference of the node, save it to the lastReference
 		lastReference = referenceGroup;
@@ -323,7 +366,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(ConditionalExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGConditional(name, location, scope);
 
 		// Visit the condition expressions of the node
@@ -356,7 +399,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(FieldAccess node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGFieldAccess(name, location, scope);
 
 		// Visit the expressions of the node
@@ -381,7 +424,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(InfixExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGInfixExpression(name, location, scope);
 
 		// Set the operator of the reference group
@@ -423,7 +466,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(InstanceofExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGInstanceof(name, location, scope);
 
 		// Visit the left operand expressions of the node
@@ -433,7 +476,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 
 		// Visit the type (i.e. the right operand) of the node
 		Type type = node.getRightOperand();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		// Add type reference to the group
@@ -446,6 +489,14 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(LambdaExpression node) {
+		return false;
+	}
+
+	
+	/**
 	 * [ Expression . ] [ < Type { , Type } > ] Identifier ( [ Expression { , Expression } ] )
 	 * Use the expression visitor to visit the node
 	 */
@@ -453,7 +504,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(MethodInvocation node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGMethodInvocation(name, location, scope);
 
 		// Visit the expressions of the node
@@ -464,17 +515,19 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		
 		String methodName = node.getName().getFullyQualifiedName();
-		MethodReference methodNameRef = new MethodReference(methodName, location, scope);
-		referenceGroup.addSubReference(methodNameRef);
+		MethodReference methodRef = new MethodReference(methodName, location, scope);
+		referenceGroup.addSubReference(methodRef);
 	
 		// Visit the arguments of the method invocation
 		List<Expression> arguments = node.arguments();
+		List<NameReference> argumentReferenceList = new ArrayList<NameReference>();
 		boolean oldCreateREferenceForLiteral = createReferenceForLiteral;
 		createReferenceForLiteral = true;
 		for (Expression arg : arguments) {
 			arg.accept(this);
-			referenceGroup.addSubReference(lastReference);
+			argumentReferenceList.add(lastReference);
 		}
+		methodRef.setArgumentList(argumentReferenceList);
 		createReferenceForLiteral = oldCreateREferenceForLiteral;
 
 		// The reference group is the result reference of the node, save it to the lastReference
@@ -484,12 +537,47 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	}
 
 	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(org.eclipse.jdt.core.dom.MethodReference node) {
+		return false;
+	}
+	
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(CreationReference node) {
+		return false;
+	}
+
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(ExpressionMethodReference node) {
+		return false;
+	}
+
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(SuperMethodReference node) {
+		return false;
+	}
+	
+	/**
+	 * Ignore this kind of AST node so far
+	 */
+	public boolean visit(TypeMethodReference node) {
+		return false;
+	}
+	
+	/**
 	 * PostfixExpression: Expression PostfixOperator
 	 */
 	public boolean visit(PostfixExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGPostfixExpression(name, location, scope);
 
 		// Set the operator of the reference group
@@ -517,7 +605,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(PrefixExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGPrefixExpression(name, location, scope);
 
 		// Set the operator of the reference group
@@ -546,7 +634,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(QualifiedName node) {
 		// Create a reference group for the node
 		String name = node.getFullyQualifiedName();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGQualifiedName(name, location, scope);
 
 		// Visit the expressions of the node
@@ -569,7 +657,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(SimpleName node) {
 		// Create a reference for the node
 		String name = node.getFullyQualifiedName();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReference reference = new ValueReference(name, location, scope, NameReferenceKind.NRK_VARIABLE);
 
 		// The reference group is the result reference of the node, save it to the lastReference
@@ -585,13 +673,13 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(SuperFieldAccess node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGSuperFieldAccess(name, location, scope);
 		
 		// Create a type reference for class name in the node
 		Name classNameNode = node.getQualifier();
 		if (classNameNode != null) {
-			location = SourceCodeLocation.getStartLocation(classNameNode, root, unitFullName);
+			location = SourceCodeLocation.getStartLocation(classNameNode, unitFile.root, unitFile.unitName);
 			String className = classNameNode.getFullyQualifiedName();
 			TypeReference classRef = new TypeReference(className, location, scope);
 			referenceGroup.addSubReference(classRef);
@@ -599,7 +687,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		
 		// Create a field reference for field name in the node
 		Name fieldNameNode = node.getName();
-		location = SourceCodeLocation.getStartLocation(fieldNameNode, root, unitFullName);
+		location = SourceCodeLocation.getStartLocation(fieldNameNode, unitFile.root, unitFile.unitName);
 		String fieldName = fieldNameNode.getFullyQualifiedName();
 		NameReference fieldRef = new ValueReference(fieldName, location, scope, NameReferenceKind.NRK_FIELD);
 		referenceGroup.addSubReference(fieldRef);
@@ -618,33 +706,35 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(SuperMethodInvocation node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGSuperMethodInvocation(name, location, scope);
 		
 		// Create a type reference for class name in the node
 		Name classNameNode = node.getQualifier();
 		if (classNameNode != null) {
-			location = SourceCodeLocation.getStartLocation(classNameNode, root, unitFullName);
+			location = SourceCodeLocation.getStartLocation(classNameNode, unitFile.root, unitFile.unitName);
 			String className = classNameNode.getFullyQualifiedName();
 			TypeReference classRef = new TypeReference(className, location, scope);
 			referenceGroup.addSubReference(classRef);
 		}
 		
 		// Create a method reference for field name in the node
-		Name fieldNameNode = node.getName();
-		location = SourceCodeLocation.getStartLocation(fieldNameNode, root, unitFullName);
-		String methodName = fieldNameNode.getFullyQualifiedName();
+		Name methodNameNode = node.getName();
+		location = SourceCodeLocation.getStartLocation(methodNameNode, unitFile.root, unitFile.unitName);
+		String methodName = methodNameNode.getFullyQualifiedName();
 		MethodReference methodRef = new MethodReference(methodName, location, scope);
 		referenceGroup.addSubReference(methodRef);
 		
 		// Visit the argument expressions of the node
 		List<Expression> arguments = node.arguments();
+		List<NameReference> argumentReferenceList = new ArrayList<NameReference>();
 		boolean oldCreateREferenceForLiteral = createReferenceForLiteral;
 		createReferenceForLiteral = true;
-		for (Expression argExp : arguments) {
-			argExp.accept(this);
-			referenceGroup.addSubReference(lastReference);
+		for (Expression arg : arguments) {
+			arg.accept(this);
+			argumentReferenceList.add(lastReference);
 		}
+		methodRef.setArgumentList(argumentReferenceList);
 		createReferenceForLiteral = oldCreateREferenceForLiteral;
 
 		// The reference group is the result reference of the node, save it to the lastReference
@@ -660,7 +750,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	 */
 	public boolean visit(ThisExpression node) {
 		// Create a literal reference for the key word 
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		LiteralReference thisReference = new LiteralReference(NameReferenceLabel.KEYWORD_THIS, NameReferenceLabel.KEYWORD_THIS, location, scope);
 		
 		// Create a type reference for class name in the node
@@ -670,7 +760,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 			String name = node.toString();
 			NameReferenceGroup referenceGroup = new NRGThisExpression(name, location, scope);
 			
-			location = SourceCodeLocation.getStartLocation(classNameNode, root, unitFullName);
+			location = SourceCodeLocation.getStartLocation(classNameNode, unitFile.root, unitFile.unitName);
 			String className = classNameNode.getFullyQualifiedName();
 			TypeReference classRef = new TypeReference(className, location, scope);
 			referenceGroup.addSubReference(classRef);
@@ -691,17 +781,18 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	/**
 	 * VariableDeclarationExpression: { ExtendedModifier } Type VariableDeclarationFragment  { , VariableDeclarationFragment }
 	 * <p>VariableDeclarationFragment:  Identifier { [] } [ = Expression ]
+	 * Important notes: The expression visitor just create references in the node with ignoring any variable definitions.
 	 */
 	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationExpression node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGVariableDeclaration(name, location, scope);
 
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		TypeReference typeRef = typeVisitor.getResult();
 		referenceGroup.addSubReference(typeRef);
@@ -710,7 +801,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		List<VariableDeclarationFragment> fragments = node.fragments();
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
-			NameTableCreator.defineVariable(varNode, typeRef, scope, unitFullName, root);
+			creator.defineVariable(unitFile, varNode, typeRef, scope);
 			
 			// Visit the initializer in the variable declaration
 			Expression initializer = varNode.getInitializer();
@@ -737,7 +828,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		// Create a reference for the node
 		String literal = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		LiteralReference reference = new LiteralReference(literal, NameReferenceLabel.TYPE_BOOLEAN, location, scope);
 		
 		// The reference is the result reference of the node, save it to the lastReference
@@ -758,7 +849,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		// Create a reference for the node
 		String literal = node.getEscapedValue();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		LiteralReference reference = new LiteralReference(literal, NameReferenceLabel.TYPE_CHAR, location, scope);
 		
 		// The reference is the result reference of the node, save it to the lastReference
@@ -777,7 +868,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 			return false;
 		}
 		// Create a reference for the node
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		LiteralReference reference = new LiteralReference(NameReferenceLabel.KEYWORD_NULL, NameReferenceLabel.KEYWORD_NULL, location, scope);
 		
 		// The reference is the result reference of the node, save it to the lastReference
@@ -797,7 +888,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		// Create a reference for the node
 		String literal = node.getToken();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		
 		// Judge the type of the literal, we use the simplest way to get it!
 		String typeName = NameReferenceLabel.TYPE_INT;
@@ -824,7 +915,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		// Create a reference for the node
 		String name = node.getEscapedValue();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		LiteralReference reference = new LiteralReference(name, NameReferenceLabel.TYPE_STRING, location, scope);
 		
 		// The reference group is the result reference of the node, save it to the lastReference
@@ -839,11 +930,11 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	public boolean visit(TypeLiteral node) {
 		// Create a reference group for the node
 		String name = node.toString();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReferenceGroup referenceGroup = new NRGTypeLiteral(name, location, scope);
 
 		Type type = node.getType();
-		typeVisitor.reset(unitFullName, root, scope);
+		typeVisitor.reset(scope);
 		type.accept(typeVisitor);
 		NameReference typeRef = typeVisitor.getResult();
 		referenceGroup.addSubReference(typeRef);
@@ -859,7 +950,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	 */
 	private NameReference createReferenceForName(Name node, NameReferenceKind kind) {
 		String name = node.getFullyQualifiedName();
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, root, unitFullName);
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
 		NameReference result = new ValueReference(name, location, scope, kind);
 		return result;
 	}

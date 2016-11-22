@@ -2,7 +2,7 @@ package nameTable.nameReference.referenceGroup;
 
 import nameTable.nameReference.NameReference;
 import nameTable.nameScope.NameScope;
-import util.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocation;
 
 /**
  * The name reference group corresponds to postfix expression. 
@@ -10,12 +10,11 @@ import util.SourceCodeLocation;
  * @author Zhou Xiaocong
  * @since 2013-3-13
  * @version 1.0
+ * 
+ * @update 2015/11/6
+ * 		Refactor the class according to the design document
  */
 public class NRGPostfixExpression extends NameReferenceGroup {
-
-	public NRGPostfixExpression(String name, SourceCodeLocation location) {
-		super(name, location);
-	}
 
 	public NRGPostfixExpression(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -35,9 +34,8 @@ public class NRGPostfixExpression extends NameReferenceGroup {
 		}
 		if (subreferences.size() > 0) {
 			NameReference firstRef = subreferences.get(0);
-			bindTo(getResultTypeDefinition(firstRef));
+			bindTo(firstRef.getResultTypeDefinition());
 		}
-
 		return isResolved();
 	}
 }
