@@ -1,8 +1,5 @@
 package nameTable.visitor;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import nameTable.filter.NameScopeFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.EnumTypeDefinition;
@@ -15,36 +12,31 @@ import nameTable.nameScope.NameScope;
 import nameTable.nameScope.SystemScope;
 
 /**
- * A Visitor class for get all name scope in the name table
+ * A visitor to find a name scope (rather than all name scopes) accepted by the given filter.
  * 
  * @author Zhou Xiaocong
- * @since 2015年6月24日
+ * @since 2016年11月9日
  * @version 1.0
+ *
  */
-public class NameScopeVisitor extends NameTableVisitor {
-
+public class NameScopeFinder extends NameTableVisitor {
 	// The result list of name scope after the visiting
-	private List<NameScope> result = new ArrayList<NameScope>();
+	private NameScope result = null;
 	// A filter to accept appropriate name definition
 	private NameScopeFilter filter = null;
 	
-	public NameScopeVisitor() {
+	public NameScopeFinder() {
 	}
 	
-	public NameScopeVisitor(NameScopeFilter filter) {
+	public NameScopeFinder(NameScopeFilter filter) {
 		this.filter = filter;
 	}
 	
 	public void reset() {
-		result = new ArrayList<NameScope>();
-	}
-
-	public void reset(NameScopeFilter filter) {
-		result = new ArrayList<NameScope>();
-		this.filter = filter;
+		result = null;
 	}
 	
-	public List<NameScope> getResult() {
+	public NameScope getResult() {
 		return result;
 	}
 	
@@ -53,31 +45,22 @@ public class NameScopeVisitor extends NameTableVisitor {
 	}
 
 	public boolean visit(SystemScope scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 	
 	public boolean visit(PackageDefinition scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 	
-	
 	public boolean visit(CompilationUnitScope scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 	
 	public boolean visit(DetailedTypeDefinition scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 	
@@ -89,23 +72,28 @@ public class NameScopeVisitor extends NameTableVisitor {
 	}
 
 	public boolean visit(EnumTypeDefinition scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 	
 	public boolean visit(MethodDefinition scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
 	}
 
 	public boolean visit(LocalScope scope) {
-		if (filter == null) result.add(scope);
-		else if (filter.accept(scope)) result.add(scope);
-		
+		if (accept(scope)) return false;
 		return true;
+	}
+	
+	private boolean accept(NameScope scope) {
+		if (filter == null) {
+			result = scope;
+			return true;
+		} else if (filter.accept(scope)) {
+			result = scope;
+			return true;
+		}
+		return false;
 	}
 }

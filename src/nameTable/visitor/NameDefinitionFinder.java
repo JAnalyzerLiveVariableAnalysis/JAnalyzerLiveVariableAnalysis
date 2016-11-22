@@ -1,8 +1,6 @@
 package nameTable.visitor;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 
 import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
@@ -21,43 +19,35 @@ import nameTable.nameScope.LocalScope;
 import nameTable.nameScope.SystemScope;
 
 /**
- * A visitor to get all definitions in the accepted scope and its sub-scope 
+ * To find a name definition rather than to get all definitions accepted by the given filter. 
  * 
  * @author Zhou Xiaocong
- * @since 2015年6月24日
+ * @since 2016年11月9日
  * @version 1.0
+ *
  */
-public class NameDefinitionVisitor extends NameTableVisitor {
-
-	// The result list of name definition after the visiting
-	private List<NameDefinition> result = new ArrayList<NameDefinition>();
-	// A filter to accept appropriate name definition
+public class NameDefinitionFinder extends NameTableVisitor {
 	private NameTableFilter filter = null;
+	private NameDefinition result = null;
 	
-	public NameDefinitionVisitor() {
+	public NameDefinitionFinder() {
 	}
-
-	public NameDefinitionVisitor(NameTableFilter filter) {
+	
+	public NameDefinitionFinder(NameTableFilter filter) {
 		this.filter = filter;
 	}
-	
+
 	public void reset() {
-		result = new ArrayList<NameDefinition>();
-	}
-	
-	public List<NameDefinition> getResult() {
-		return result;
+		result = null;
 	}
 	
 	public void reset(NameTableFilter filter) {
-		result = new ArrayList<NameDefinition>();
+		result = null;
 		this.filter = filter;
 	}
 
-	public TreeSet<NameDefinition> getResultAsTreeSet() {
-		TreeSet<NameDefinition> resultSet = new TreeSet<NameDefinition>();
-		for (NameDefinition definition : result) resultSet.add(definition);
-		return resultSet;
+	public NameDefinition getResult() {
+		return result;
 	}
 	
 	public void setFilter(NameTableFilter filter) {
@@ -72,27 +62,23 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<ImportedTypeDefinition> importedTypeList = scope.getImportedTypeList();
 		if (importedTypeList != null) {
 			for (ImportedTypeDefinition type : importedTypeList) {
-				if (filter == null) result.add(type);
-				else if (filter.accept(type)) result.add(type);
+				if (accept(type)) return false;
 			}
 		}
 		
 		List<ImportedStaticMemberDefinition> importedStaticMemberList = scope.getImportedStaticMemberList();
 		if (importedStaticMemberList != null) {
 			for (ImportedStaticMemberDefinition member : importedStaticMemberList) {
-				if (filter == null) result.add(member);
-				else if (filter.accept(member)) result.add(member);
+				if (accept(member)) return false;
 			}
 		}
 
 		List<PackageDefinition> packageList = scope.getPackageList();
 		if (packageList != null) {
 			for (PackageDefinition name : packageList) {
-				if (filter == null) result.add(name);
-				else if (filter.accept(name)) result.add(name);
+				if (accept(name)) return false;
 			}
 		}
-		
 		return true;
 	}
 	
@@ -111,8 +97,7 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<TypeDefinition> types = scope.getTypeList();
 		if (types != null) {
 			for (TypeDefinition type : types) {
-				if (filter == null) result.add(type);
-				else if (filter.accept(type)) result.add(type);
+				if (accept(type)) return false;
 			}
 		}
 		return true;
@@ -125,55 +110,24 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<FieldDefinition> fields = scope.getFieldList();
 		if (fields != null) {
 			for (FieldDefinition field : fields) {
-				if (filter == null) result.add(field);
-				else if (filter.accept(field)) result.add(field);
+				if (accept(field)) return false;
 			}
 		}
 		List<MethodDefinition> methods = scope.getMethodList();
 		if (methods != null) {
 			for (MethodDefinition method : methods) {
-				if (filter == null) result.add(method);
-				else if (filter.accept(method)) result.add(method);
+				if (accept(method)) return false;
 			}
 		}
 		List<DetailedTypeDefinition> types = scope.getTypeList();
 		if (types != null) {
 			for (DetailedTypeDefinition type : types) {
-				if (filter == null) result.add(type);
-				else if (filter.accept(type)) result.add(type);
+				if (accept(type)) return false;
 			}
 		}
 		return true;
 	}
 	
-	/**
-	 * Get the definitions defined in a imported type, including its possible fields, methods and types.
-	 */
-	public boolean visit(ImportedTypeDefinition scope) {
-		List<FieldDefinition> fields = scope.getFieldList();
-		if (fields != null) {
-			for (FieldDefinition field : fields) {
-				if (filter == null) result.add(field);
-				else if (filter.accept(field)) result.add(field);
-			}
-		}
-		List<MethodDefinition> methods = scope.getMethodList();
-		if (methods != null) {
-			for (MethodDefinition method : methods) {
-				if (filter == null) result.add(method);
-				else if (filter.accept(method)) result.add(method);
-			}
-		}
-		List<ImportedTypeDefinition> types = scope.getTypeList();
-		if (types != null) {
-			for (ImportedTypeDefinition type : types) {
-				if (filter == null) result.add(type);
-				else if (filter.accept(type)) result.add(type);
-			}
-		}
-		return true;
-	}
-
 	/**
 	 * Get the constants defined in a enum type
 	 */
@@ -181,8 +135,7 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<EnumConstantDefinition> names = scope.getConstants();
 		if (names != null) {
 			for (EnumConstantDefinition name : names) {
-				if (filter == null) result.add(name);
-				else if (filter.accept(name)) result.add(name);
+				if (accept(name)) return false;
 			}
 		}
 		return true;
@@ -195,8 +148,7 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<VariableDefinition> vars = scope.getParameterList();
 		if (vars != null) {
 			for (VariableDefinition var : vars) {
-				if (filter == null) result.add(var);
-				else if (filter.accept(var)) result.add(var);
+				if (accept(var)) return false;
 			}
 		}
 		return true;
@@ -209,18 +161,30 @@ public class NameDefinitionVisitor extends NameTableVisitor {
 		List<VariableDefinition> vars = scope.getVariableList();
 		if (vars != null) {
 			for (VariableDefinition var : vars) {
-				if (filter == null) result.add(var);
-				else if (filter.accept(var)) result.add(var);
+				if (accept(var)) return false;
 			}
 		}
 		List<DetailedTypeDefinition> types = scope.getLocalTypeList();
 		if (types != null) {
 			for (DetailedTypeDefinition type : types) {
-				if (filter == null) result.add(type);
-				else if (filter.accept(type)) result.add(type);
+				if (accept(type)) return false;
 			}
 		}
 		return true;
 	}
 	
+
+	/**
+	 * Test if the given definition should be accepted by the filter (if it is not null) of this visitor.
+	 */
+	private boolean accept(NameDefinition definition) {
+		if (filter == null) {
+			result = definition;
+			return true;
+		} else if (filter.accept(definition)) {
+			result = definition;
+			return true;
+		}
+		return false;
+	}
 }
