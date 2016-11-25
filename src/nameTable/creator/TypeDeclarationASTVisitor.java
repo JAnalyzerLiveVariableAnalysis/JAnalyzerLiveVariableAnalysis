@@ -311,13 +311,6 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	/**
 	 * Ignore this kind of AST node so far
 	 */
-	protected boolean createScopeForForStatement(ForStatement node) {
-		return false;
-	}
-	
-	/**
-	 * Ignore this kind of AST node so far
-	 */
 	public boolean visit(ForStatement node) {
 		return false;
 	}

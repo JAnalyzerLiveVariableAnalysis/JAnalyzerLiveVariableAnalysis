@@ -114,6 +114,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		this.scope = scope;
 		lastReference = null;
 		createReferenceForLiteral = false;
+		typeVisitor.reset(unitFile, scope);
 	}
 
 	public void reset(NameScope scope) {

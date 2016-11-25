@@ -33,6 +33,7 @@ import nameTable.nameScope.SystemScope;
 import nameTable.visitor.NameDefinitionFinder;
 import nameTable.visitor.NameDefinitionPrinter;
 import nameTable.visitor.NameDefinitionVisitor;
+import nameTable.visitor.NameReferencePrinter;
 import nameTable.visitor.NameScopeVisitor;
 import sourceCodeAST.SourceCodeFileSet;
 import sourceCodeAST.SourceCodeLocation;
@@ -83,12 +84,13 @@ public class TestNameTable {
 		}
 		
 		try {
+			printAllNames(path, result);
 //			printAllDefinitions(path, result);
 //			printAllDefinitionsToDataTable(path, result);
 //			printAllNameScopesToDataTable(path, result);
-//			printAllReferenceToDataTable(path, result);
+//			printAllReferencesToDataTable(path, result);
 //			printReferenceBindToDefinition(path, result);
-			printNamesInCFG(path, result);
+//			printNamesInCFG(path, result);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 		}
@@ -98,6 +100,33 @@ public class TestNameTable {
 	}
 	
 	
+	/**
+	 * Use a name table printer to print all definitions and all references of code file set with the given start path 
+	 * to the given resultFile. 
+	 */
+	public static void printAllNames(String path, String resultFile) throws IOException {
+		SourceCodeFileSet parser = new SourceCodeFileSet(path);
+		NameTableCreator creator = new NameTableCreator(parser);
+		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+
+		Debug.setStart("Begin creating system, path = " + path);
+		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
+		Debug.time("End creating.....");
+		Debug.flush();
+		
+		PrintWriter writer = new PrintWriter(new File(resultFile));
+		NameDefinitionPrinter definitionPrinter = new NameDefinitionPrinter(writer);
+		definitionPrinter.setPrintVariable(true);
+		manager.accept(definitionPrinter);
+		
+		writer.println();
+		
+		NameReferencePrinter referencePrinter = new NameReferencePrinter(writer);
+		referencePrinter.setPrintBindedDefinition();
+		manager.accept(referencePrinter);
+		writer.close();
+	}
+
 	/**
 	 * Use a name table printer to print all definitions of code file set with the given start path to the given resultFile. 
 	 */

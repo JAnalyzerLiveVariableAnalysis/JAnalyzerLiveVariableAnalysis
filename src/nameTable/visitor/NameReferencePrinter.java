@@ -13,6 +13,7 @@ import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameDefinition.TypeDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameReference.NameReference;
+import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.LocalScope;
 import nameTable.nameScope.SystemScope;
@@ -62,12 +63,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+1) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -88,12 +95,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+1) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -111,12 +124,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+1) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent+1) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -151,12 +170,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(getIndentString(indent + 1) + reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+2) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent+1) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -205,12 +230,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(getIndentString(indent+1) + reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+2) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent+1) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -233,25 +264,42 @@ public class NameReferencePrinter extends NameTableVisitor {
 				} else writer.print(", " + var.getType().getName());
 			}
 		}
-		writer.println(") : " + scope.getReturnType().getName() + "[id: " + scope.getUniqueId() + "]");
+		TypeReference returnType = scope.getReturnType();
+		if (returnType != null) {
+			writer.println(") : " + scope.getReturnType().getName());
+		} else {
+			if (scope.isConstructor()) {
+				writer.println(") : Constructor");
+			} else {
+				writer.println(")");
+			}
+		}
 
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(getIndentString(indent + 1) + reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+2) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent+1) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
 		
 		LocalScope bodyScope = scope.getBodyScope();
-		indent = indent + 1;
-		bodyScope.accept(this);
-		indent = indent - 1;
+		if (bodyScope != null) {
+			indent = indent + 1;
+			bodyScope.accept(this);
+			indent = indent - 1;
+		}
 		return false;
 	}
 
@@ -264,12 +312,18 @@ public class NameReferencePrinter extends NameTableVisitor {
 		List<NameReference> referenceList = scope.getReferenceList(); 
 		if (referenceList != null) {
 			for (NameReference reference : referenceList) {
-				if (!accept(reference)) continue;
+				if (printBindedDefinition) reference.resolveBinding();
 				
-				writer.println(getIndentString(indent + 1) + reference.toString());
-				if (printBindedDefinition) {
-					reference.resolveBinding();
-					writer.println(getIndentString(indent+2) + reference.bindedDefinitionToString());
+				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
+				for (NameReference leafReference : leafReferenceList) {
+					if (!accept(leafReference)) continue;
+					
+					writer.print(getIndentString(indent+1) + leafReference.getLocation() + " " + leafReference.getName() + " : " + leafReference.getReferenceKind());
+					if (printBindedDefinition) {
+						if (leafReference.isResolved()) {
+							writer.println("[" + leafReference.getDefinition().getUniqueId() + "]");
+						} else writer.println("[Not resolved!]");
+					} else writer.println();
 				}
 			}
 		}
@@ -284,7 +338,16 @@ public class NameReferencePrinter extends NameTableVisitor {
 				}
 			}
 		}
-		return true;
+		
+		List<LocalScope> subscopeList = scope.getSubLocalScope();
+		if (subscopeList != null) {
+			for (LocalScope subscope : subscopeList) {
+				indent = indent + 1;
+				subscope.accept(this);
+				indent = indent - 1;
+			}
+		}
+		return false;
 	}
 	
 	private String getIndentString(int indent) {
