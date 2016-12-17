@@ -291,7 +291,7 @@ public class ClassDependenceCreator {
 		
 		if (reference.isGroupReference()) {
 			NameReferenceGroup refGroup = (NameReferenceGroup)reference;
-			List<NameReference> subreferences = refGroup.getSubReference();
+			List<NameReference> subreferences = refGroup.getSubReferenceList();
 			if (subreferences == null) return;
 			for (NameReference subref : subreferences) findDependencesInReferences(subref);
 		}

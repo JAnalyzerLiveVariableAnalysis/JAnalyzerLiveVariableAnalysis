@@ -124,7 +124,7 @@ public class NameDefinitionNumberVisitor extends NameTableVisitor {
 	 * Get the constants defined in a enum type
 	 */
 	public boolean visit(EnumTypeDefinition scope) {
-		List<EnumConstantDefinition> names = scope.getConstants();
+		List<EnumConstantDefinition> names = scope.getConstantList();
 		if (names != null) {
 			for (EnumConstantDefinition name : names) {
 				if (filter == null) result++;

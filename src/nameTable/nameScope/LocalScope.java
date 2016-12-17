@@ -100,8 +100,6 @@ public class LocalScope implements NameScope {
 	 */
 	@Override
 	public boolean resolve(NameReference reference) {
-//		if (reference.getName().equals("ORB")) System.out.println("Resolve ORB in local scope " + this.getScopeName());
-		
 		if (reference.getReferenceKind() == NameReferenceKind.NRK_VARIABLE) {
 			if (variableList != null) {
 				for (VariableDefinition var : variableList) {
@@ -151,20 +149,6 @@ public class LocalScope implements NameScope {
 	 */
 	public List<LocalScope> getSubLocalScope() {
 		return subLocalscopeList;
-	}
-
-	/**
-	 * Test if a location is included in the local scope 
-	 */
-	public boolean isInScopeArea(SourceCodeLocation location) {
-		return location.isBetween(startLocation, endLocation);
-	}
-
-	/**
-	 * Set the scope enclosed the scope
-	 */
-	public void setEnclosingScope(NameScope parent) {
-		this.enclosingScope = parent;
 	}
 
 	/**

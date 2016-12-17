@@ -52,15 +52,11 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 	}
 	
 	public boolean isEnumType() {
-		if (getDefinitionKind() != NameDefinitionKind.NDK_TYPE) return false;
-		TypeDefinition type = (TypeDefinition)this;
-		return type.isEnumType(); 
+		return false;
 	}
 
 	public boolean isDetailedType() {
-		if (getDefinitionKind() != NameDefinitionKind.NDK_TYPE) return false;
-		TypeDefinition type = (TypeDefinition)this;
-		return type.isDetailedType(); 
+		return false;
 	}
 
 	public boolean isMethodDefinition() {

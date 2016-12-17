@@ -11,32 +11,32 @@ import sourceCodeAST.SourceCodeLocation;
  * @version 1.0
  *
  */
-public class NameReferenceLocatoinFilter extends NameTableFilter {
+public class NameReferenceLocationFilter extends NameTableFilter {
 
 	private NameTableFilter wrappedFilter = null;
 	private SourceCodeLocation start = null;
 	private SourceCodeLocation end = null;
 	
-	public NameReferenceLocatoinFilter(NameTableFilter wrappedFilter) {
+	public NameReferenceLocationFilter(NameTableFilter wrappedFilter) {
 		this.wrappedFilter = wrappedFilter;
 	}
 
-	public NameReferenceLocatoinFilter(SourceCodeLocation start) {
+	public NameReferenceLocationFilter(SourceCodeLocation start) {
 		this.start = start;
 	}
 
-	public NameReferenceLocatoinFilter(SourceCodeLocation start, SourceCodeLocation end) {
+	public NameReferenceLocationFilter(SourceCodeLocation start, SourceCodeLocation end) {
 		this.start = start;
 		this.end = end;
 	}
 
-	public NameReferenceLocatoinFilter(NameTableFilter wrappedFilter, SourceCodeLocation start, SourceCodeLocation end) {
+	public NameReferenceLocationFilter(NameTableFilter wrappedFilter, SourceCodeLocation start, SourceCodeLocation end) {
 		this.wrappedFilter = wrappedFilter;
 		this.start = start;
 		this.end = end;
 	}
 
-	public NameReferenceLocatoinFilter(NameTableFilter wrappedFilter, SourceCodeLocation start) {
+	public NameReferenceLocationFilter(NameTableFilter wrappedFilter, SourceCodeLocation start) {
 		this.wrappedFilter = wrappedFilter;
 		this.start = start;
 	}

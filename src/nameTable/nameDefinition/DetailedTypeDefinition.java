@@ -249,9 +249,13 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		if (superList == null) return null;
 		if (superList.size() < 1) return null;
 		TypeReference superClassRef = superList.get(0);
-		if (!superClassRef.isResolved()) superClassRef.resolveBinding();
+		if (superClassRef.resolveBinding()) {
+			TypeDefinition superTypeDefinition = (TypeDefinition)superClassRef.getDefinition();
+			if (superTypeDefinition.isInterface()) return null;
+			else return superTypeDefinition;
+		}
 		
-		return (TypeDefinition)superClassRef.getDefinition();
+		return null;
 	}
 
 	public List<TypeParameterDefinition> getTypeParameterList() {

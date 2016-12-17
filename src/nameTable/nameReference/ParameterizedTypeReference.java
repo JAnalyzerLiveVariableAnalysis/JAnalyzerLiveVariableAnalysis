@@ -107,8 +107,10 @@ public class ParameterizedTypeReference extends TypeReference {
 	 */
 	public List<NameReference> getReferencesAtLeaf() {
 		List<NameReference> result = new ArrayList<NameReference>();
-		result.add(primaryType);
-		if (argumentList != null) result.addAll(argumentList);
+		result.addAll(primaryType.getReferencesAtLeaf());
+		if (argumentList != null) {
+			for (TypeReference argument : argumentList) result.addAll(argument.getReferencesAtLeaf());
+		}
 		return result;
 	}
 	
@@ -141,7 +143,7 @@ public class ParameterizedTypeReference extends TypeReference {
 		return "Type Reference [Name = " + primaryType.getName() + parameterString.toString() + " @ " + location.getUniqueId() + "]";
 	}
 	
-	public String toDelcarationString() {
+	public String toDeclarationString() {
 		StringBuffer parameterString = new StringBuffer("");
 		if (argumentList != null && argumentList.size() > 0) {
 			parameterString.append("<" + argumentList.get(0).name);

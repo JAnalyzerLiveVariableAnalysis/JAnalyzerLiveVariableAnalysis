@@ -165,7 +165,7 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	 * type, then we return its main type and its parameter types.
 	 */
 	public List<TypeDefinition> getReturnTypeDefinition(boolean flag) {
-		if (returnType == null) return null;
+		if (returnType == null) return new ArrayList<TypeDefinition>();
 		returnType.resolveBinding();
 		if (flag == false || !returnType.isParameterizedType()) {
 			List<TypeDefinition> resultList = new ArrayList<TypeDefinition>();
@@ -266,7 +266,7 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		for (int index = 0; index < args.size(); index++) {
 			NameReference argument = args.get(index);
 			VariableDefinition parameter = parameterList.get(index);
-			TypeDefinition argumentType = getArgumentType(argument);
+			TypeDefinition argumentType = argument.getResultTypeDefinition();
 			TypeDefinition paraType = parameter.getTypeDefinition();
 			
 			if (argumentType != null && paraType != null) {
@@ -276,25 +276,6 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 			} // If we can not resolve the argument type or the parameter type, then we ignore the type compatibility between the argument  and the parameter.
 		}
 		return true;
-	}
-
-	private TypeDefinition getArgumentType(NameReference reference) {
-		reference.resolveBinding();
-		NameDefinition nameDef = reference.getDefinition();
-		if (nameDef == null) return null;
-
-		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
-		if (nameDefKind == NameDefinitionKind.NDK_TYPE) return (TypeDefinition)nameDef;
-		else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
-			FieldDefinition fieldDef = (FieldDefinition)nameDef;
-			return fieldDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
-			VariableDefinition varDef = (VariableDefinition)nameDef;
-			return varDef.getTypeDefinition();
-		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
-			MethodDefinition methodDef = (MethodDefinition)nameDef;
-			return methodDef.getReturnTypeDefinition();
-		} else throw new AssertionError("Internal error: the argument " + reference.toString() + " bind to unexpected definition " + nameDef.toString() + ", kind = " + nameDefKind);
 	}
 
 	/**

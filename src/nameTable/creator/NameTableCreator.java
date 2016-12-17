@@ -670,7 +670,6 @@ public class NameTableCreator {
 	 */
 	LocalScope createLocalScope(SourceCodeLocation start, SourceCodeLocation end, NameScope parent) {
 		LocalScope localScope = new LocalScope(parent, start, end);
-		localScope.setEnclosingScope(parent);
 		if (parent.getScopeKind() == NameScopeKind.NSK_LOCAL) {
 			LocalScope currScope = (LocalScope)parent;
 			currScope.addSubLocalScope(localScope);

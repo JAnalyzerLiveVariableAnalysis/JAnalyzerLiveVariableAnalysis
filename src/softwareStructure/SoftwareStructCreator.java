@@ -242,7 +242,7 @@ class SoftwareStructCreator {
 		NameReferenceKind kind = reference.getReferenceKind();
 		if (kind == NameReferenceKind.NRK_GROUP) {
 			NameReferenceGroup group = (NameReferenceGroup)reference;
-			List<NameReference> subreferenceList = group.getSubReference();
+			List<NameReference> subreferenceList = group.getSubReferenceList();
 			if (subreferenceList == null) return false;
 			for (NameReference subreference : subreferenceList) {
 				if (hasTypeReference(subreference)) return true;
@@ -259,7 +259,7 @@ class SoftwareStructCreator {
 		NameReferenceKind kind = reference.getReferenceKind();
 		if (kind == NameReferenceKind.NRK_GROUP) {
 			NameReferenceGroup group = (NameReferenceGroup)reference;
-			List<NameReference> subreferenceList = group.getSubReference();
+			List<NameReference> subreferenceList = group.getSubReferenceList();
 			if (subreferenceList == null) return false;
 			for (NameReference subreference : subreferenceList) {
 				if (hasTypeFieldOrMethodReference(subreference)) return true;

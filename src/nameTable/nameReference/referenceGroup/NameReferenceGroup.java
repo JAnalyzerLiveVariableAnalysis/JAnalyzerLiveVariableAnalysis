@@ -71,7 +71,7 @@ public abstract class NameReferenceGroup extends NameReference {
 	/**
 	 * Get the list of all references in the group
 	 */
-	public List<NameReference> getSubReference() {
+	public List<NameReference> getSubReferenceList() {
 		return subreferences;
 	}
 

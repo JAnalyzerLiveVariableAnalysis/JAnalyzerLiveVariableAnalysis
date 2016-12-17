@@ -296,7 +296,7 @@ public class CallGraphCreator
 			result.add(nameReferenceGroup);
 		}
 		
-		List<NameReference> subreferences = nameReferenceGroup.getSubReference();
+		List<NameReference> subreferences = nameReferenceGroup.getSubReferenceList();
 		if (subreferences == null) {
 			return result;
 		}

@@ -53,11 +53,6 @@ public class ImportedTypeDefinition extends TypeDefinition implements NameScope 
 	}
 
 	@Override
-	public SourceCodeLocation getLocation() {
-		return location;
-	}
-
-	@Override
 	public String getScopeName() {
 		return simpleName;
 	}

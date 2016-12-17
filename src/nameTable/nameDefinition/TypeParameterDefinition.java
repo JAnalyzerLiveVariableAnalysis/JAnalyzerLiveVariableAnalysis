@@ -23,12 +23,6 @@ public class TypeParameterDefinition extends TypeDefinition {
 		super(simpleName, fullQualifiedName, location, scope);
 	}
 
-	@Override
-	public boolean isDetailedType() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	/* (non-Javadoc)
 	 * @see nameTable.NameDefinition#getNameDefinitionKind()
 	 */

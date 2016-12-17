@@ -39,27 +39,6 @@ public abstract class TypeDefinition extends NameDefinition {
 	}
 	
 	/**
-	 * Test if the type is detailed type definition or not
-	 */
-	public boolean isDetailedType() {
-		return false;
-	}
-
-	/**
-	 * Test if the type is imported type definition or not
-	 */
-	public boolean isImportedType() {
-		return false;
-	}
-
-	/**
-	 * Test if the type is an enumeration type
-	 */
-	public boolean isEnumType() {
-		return false;
-	}
-
-	/**
 	 * Test if the type is an interface. 
 	 */
 	public boolean isInterface() {
@@ -128,8 +107,7 @@ public abstract class TypeDefinition extends NameDefinition {
 				if (!superType.isResolved()) superType.resolveBinding();
 				if (superType.getDefinition() == parent) return true;
 				if (superType.getDefinition() == this) {
-					System.out.println("In TypeDefinition 131: The super type [" + superType.getName() + ", kind = " + superType.getTypeKind() + "] of " + this.fullQualifiedName + " include itself!");
-					System.exit(0);
+					throw new AssertionError("The super type [" + superType.getName() + ", kind = " + superType.getTypeKind() + "] of " + this.fullQualifiedName + " include itself!");
 				}
 			}
 			// If do match the definition in the super list, recursively judge the super type of the current type 
@@ -141,7 +119,7 @@ public abstract class TypeDefinition extends NameDefinition {
 				}
 			}
 			return false;
-		} else return matchSubtypeRelationsOfSimpleTypes(simpleName, parent.getSimpleName());
+		} else return matchSubtypeRelationsOfPrimitiveTypes(simpleName, parent.getSimpleName());
 	}
 	
 	
@@ -154,7 +132,7 @@ public abstract class TypeDefinition extends NameDefinition {
 		return false;
 	}
 		
-	protected static boolean matchSubtypeRelationsOfSimpleTypes(String subTypeName, String superTypeName) {
+	protected static boolean matchSubtypeRelationsOfPrimitiveTypes(String subTypeName, String superTypeName) {
 		// Each type is a sub-type of ROOT_OBJECT_NAME (i.e. java.lang.Object)
 		if (superTypeName.equals(SystemScope.ROOT_OBJECT_NAME)) return true; 
 		

@@ -10,6 +10,8 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
+import analyzer.dataTable.DataTableManager;
+import analyzer.dataTable.DataTableUtil;
 import graph.basic.GraphNode;
 import graph.cfg.ControlFlowGraph;
 import graph.cfg.ExecutionPoint;
@@ -23,6 +25,7 @@ import nameTable.filter.NameDefinitionKindFilter;
 import nameTable.filter.NameDefinitionNameFilter;
 import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
@@ -54,7 +57,7 @@ public class TestNameTable {
 
 		
 		String[] paths = {"C:\\QualitasPacking\\recent\\eclipse_SDK\\eclipse_SDK-4.3\\", "C:\\QualitasPacking\\recent\\jfreechart\\jfreechart-1.0.13\\", 
-							rootPath + "ZxcWork\\ProgramAnalysis\\src\\", rootPath + "ZxcTools\\EclipseSource\\org\\", 
+							rootPath + "ZxcWork\\JAnalyzer\\src\\", rootPath + "ZxcTools\\EclipseSource\\org\\", 
 							rootPath + "ZxcWork\\ToolKit\\src\\", rootPath + "ZxcDeveloping\\OOPAndJavaExamples\\automata\\src\\", 
 							rootPath + "ZxcProject\\AspectViz\\ZxcWork\\SortAnimator4\\", rootPath + "ZxcTools\\JDKSource\\", 
 							rootPath + "ZxcCourse\\JavaProgramming\\JHotDraw5.2\\sources\\", rootPath + "ZxcWork\\FaultLocalization\\src\\", 
@@ -199,6 +202,7 @@ public class TestNameTable {
 		writer.close();
 	}
 
+	
 	/**
 	 * Print all definitions of code file set with the given start path to the given resultFile to a text file, which can be regarded
 	 * as a two-dimension data table. 

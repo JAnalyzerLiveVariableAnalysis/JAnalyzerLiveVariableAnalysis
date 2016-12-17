@@ -208,7 +208,7 @@ public class NameReferenceCreator {
 		if (superList != null) resultList.addAll(superList);
 		
 		// Process the constant declarations in the node. We regard the enum constant as method 
-		List<EnumConstantDefinition> constantList = type.getConstants();
+		List<EnumConstantDefinition> constantList = type.getConstantList();
 		for (EnumConstantDefinition constant : constantList) {
 			List<NameReference> argumentList = constant.getArgumentList();
 			if (argumentList != null) resultList.addAll(argumentList);

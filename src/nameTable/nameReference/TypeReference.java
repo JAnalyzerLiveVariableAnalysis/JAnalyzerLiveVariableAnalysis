@@ -135,7 +135,7 @@ public class TypeReference extends NameReference {
 		return kind.id + " Reference [Type Name = " + name + arrayString + " @ " + location.getUniqueId() + "]";
 	}
 	
-	public String toDelcarationString() {
+	public String toDeclarationString() {
 		String arrayString = "";
 		for (int count = 0; count < dimension; count++) {
 			arrayString = arrayString + "[]";

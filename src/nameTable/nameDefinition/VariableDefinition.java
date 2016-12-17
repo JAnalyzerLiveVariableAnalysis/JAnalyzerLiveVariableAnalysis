@@ -66,7 +66,7 @@ public class VariableDefinition extends NameDefinition {
 	 * type, then we return its main type and its parameter types.
 	 */
 	public List<TypeDefinition> getTypeDefinition(boolean flag) {
-		if (type == null) return null;
+		if (type == null) return new ArrayList<TypeDefinition>();
 		type.resolveBinding();
 		if (flag == false || !type.isParameterizedType()) {
 			List<TypeDefinition> resultList = new ArrayList<TypeDefinition>();

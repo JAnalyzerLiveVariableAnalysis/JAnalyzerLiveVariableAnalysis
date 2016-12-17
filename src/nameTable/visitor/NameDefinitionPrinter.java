@@ -301,7 +301,7 @@ public class NameDefinitionPrinter extends NameTableVisitor {
 			}
 		}
 		
-		List<EnumConstantDefinition> constantList = scope.getConstants();
+		List<EnumConstantDefinition> constantList = scope.getConstantList();
 		if (constantList != null) {
 			writer.println(getIndentString(indent+1) + "Constant: ");
 			for (EnumConstantDefinition constant : constantList) {

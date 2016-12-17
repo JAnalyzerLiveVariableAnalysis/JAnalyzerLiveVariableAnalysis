@@ -388,7 +388,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		// The reference group is the result reference of the node, save it to the lastReference
 		// If there is no sub reference in the referenceGroup, then it represent a constant expression, we do not add it 
 		// to the reference list!
-		if (referenceGroup.getSubReference() != null) lastReference = referenceGroup;
+		if (referenceGroup.getSubReferenceList() != null) lastReference = referenceGroup;
 		else lastReference = null;
 		// The children of the node have been visited, so we do not need to goto its children
 		return false;
@@ -454,7 +454,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		// The reference group is the result reference of the node, save it to the lastReference
 		// If there is no sub reference in the referenceGroup, then it represent a constant expression, we do not add it 
 		// to the reference list!
-		if (referenceGroup.getSubReference() != null) lastReference = referenceGroup;
+		if (referenceGroup.getSubReferenceList() != null) lastReference = referenceGroup;
 		else lastReference = null;
 		// The children of the node have been visited, so we do not need to goto its children
 		return false;
@@ -594,7 +594,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		// The reference group is the result reference of the node, save it to the lastReference
 		// If there is no sub reference in the referenceGroup, then it represent a constant expression, we do not add it 
 		// to the reference list!
-		if (referenceGroup.getSubReference() != null) lastReference = referenceGroup;
+		if (referenceGroup.getSubReferenceList() != null) lastReference = referenceGroup;
 		else lastReference = null;
 		// The children of the node have been visited, so we do not need to goto its children
 		return false;
@@ -623,7 +623,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		// The reference group is the result reference of the node, save it to the lastReference
 		// If there is no sub reference in the referenceGroup, then it represent a constant expression, we do not add it 
 		// to the reference list!
-		if (referenceGroup.getSubReference() != null) lastReference = referenceGroup;
+		if (referenceGroup.getSubReferenceList() != null) lastReference = referenceGroup;
 		else lastReference = null;
 		// The children of the node have been visited, so we do not need to goto its children
 		return false;

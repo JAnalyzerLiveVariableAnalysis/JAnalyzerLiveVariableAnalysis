@@ -40,8 +40,8 @@ public class NameTableComparator {
 			return false;
 		}
 		
-		String oneType = one.getType().toDelcarationString();
-		String twoType = two.getType().toDelcarationString();
+		String oneType = one.getType().toDeclarationString();
+		String twoType = two.getType().toDeclarationString();
 		if (!oneType.equals(twoType)) {
 			reportString.append(splitter + "have different field type [" + oneType + "] v.s. [" + twoType + "]");
 			reportString.append(locationString);
@@ -75,9 +75,9 @@ public class NameTableComparator {
 		}
 		
 		String oneReturnType = "void";
-		if (one.getReturnType() != null) oneReturnType = one.getReturnType().toDelcarationString();
+		if (one.getReturnType() != null) oneReturnType = one.getReturnType().toDeclarationString();
 		String twoReturnType = "void";
-		if (two.getReturnType() != null) twoReturnType = two.getReturnType().toDelcarationString();
+		if (two.getReturnType() != null) twoReturnType = two.getReturnType().toDeclarationString();
 		if (!oneReturnType.equals(twoReturnType)) {
 			reportString.append(splitter + "have different return type [" + oneReturnType + "] v.s. [" + twoReturnType + "]");
 			reportString.append(locationString);
@@ -119,8 +119,8 @@ public class NameTableComparator {
 					return false;
 				}
 				
-				String oneParaType = onePara.getType().toDelcarationString();
-				String twoParaType = twoPara.getType().toDelcarationString();
+				String oneParaType = onePara.getType().toDeclarationString();
+				String twoParaType = twoPara.getType().toDeclarationString();
 				if (!oneParaType.equals(twoParaType)) {
 					reportString.append(splitter + "parameter number " + index + " have different type [" + oneParaType + "] v.s. [" + twoParaType + "]");
 					reportString.append(locationString);
@@ -152,8 +152,8 @@ public class NameTableComparator {
 			}
 			
 			for (int index = 0; index < oneThrowList.size(); index++) {
-				String oneThrowType = oneThrowList.get(index).toDelcarationString();
-				String twoThrowType = twoThrowList.get(index).toDelcarationString();
+				String oneThrowType = oneThrowList.get(index).toDeclarationString();
+				String twoThrowType = twoThrowList.get(index).toDeclarationString();
 				
 				if (!oneThrowType.equals(twoThrowType)) {
 					reportString.append(splitter + "Throw type number " + index + " have different name [" + oneThrowType + "] v.s. [" + twoThrowType + "]");
@@ -217,12 +217,12 @@ public class NameTableComparator {
 		boolean hasDifferentSuperType = false;
 		if (oneSuperList != null) {
 			for (int oneIndex = 0; oneIndex < oneSuperList.size(); oneIndex++) {
-				String oneSuperType = oneSuperList.get(oneIndex).toDelcarationString();
+				String oneSuperType = oneSuperList.get(oneIndex).toDeclarationString();
 				boolean oneSuperFound = false;
 				oneTotalItems = oneTotalItems + 1;
 				if (twoSuperList != null) {
 					for (int twoIndex = 0; twoIndex < twoSuperList.size(); twoIndex++) {
-						String twoSuperType = twoSuperList.get(twoIndex).toDelcarationString();
+						String twoSuperType = twoSuperList.get(twoIndex).toDeclarationString();
 						if (oneSuperType.equals(twoSuperType)) {
 							oneSuperFound = true;
 							break;
@@ -247,12 +247,12 @@ public class NameTableComparator {
 
 		if (twoSuperList != null) {
 			for (int twoIndex = 0; twoIndex < twoSuperList.size(); twoIndex++) {
-				String twoSuperType = twoSuperList.get(twoIndex).toDelcarationString();
+				String twoSuperType = twoSuperList.get(twoIndex).toDeclarationString();
 				boolean twoSuperFound = false;
 				// oneTotalItems = oneTotalItems + 1; If the super type of the second is not in the first, we do not calculate it in the total items!
 				if (oneSuperList != null) {
 					for (int oneIndex = 0; oneIndex < oneSuperList.size(); oneIndex++) {
-						String oneSuperType = oneSuperList.get(oneIndex).toDelcarationString();
+						String oneSuperType = oneSuperList.get(oneIndex).toDeclarationString();
 						if (twoSuperType.equals(oneSuperType)) {
 							twoSuperFound = true;
 							break;
@@ -522,12 +522,12 @@ public class NameTableComparator {
 		List<TypeReference> twoSuperList = two.getSuperList();
 		if (oneSuperList != null) {
 			for (int oneIndex = 0; oneIndex < oneSuperList.size(); oneIndex++) {
-				String oneSuperType = oneSuperList.get(oneIndex).toDelcarationString();
+				String oneSuperType = oneSuperList.get(oneIndex).toDeclarationString();
 				boolean oneSuperFound = false;
 				oneTotalItems = oneTotalItems + 1;
 				if (twoSuperList != null) {
 					for (int twoIndex = 0; twoIndex < twoSuperList.size(); twoIndex++) {
-						String twoSuperType = twoSuperList.get(twoIndex).toDelcarationString();
+						String twoSuperType = twoSuperList.get(twoIndex).toDeclarationString();
 						if (oneSuperType.equals(twoSuperType)) {
 							oneSuperFound = true;
 							break;

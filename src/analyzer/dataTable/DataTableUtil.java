@@ -693,10 +693,14 @@ public class DataTableUtil {
 					String columnString = " ";
 					if (lineStringArray != null) columnString = lineStringArray[colIndex];
 					
-					if (colIndex == 0) {
+/*					if (colIndex == 0) {
 						if (i == 0) writer.print("\\pname{" + columnString + "} ");
 						else writer.print(" & \\pname{" + columnString + "} ");
-					} else writer.print(" & \\pname{" + columnString + "} ");
+					} else writer.print(" & " + columnString);*/
+					if (colIndex == 0) {
+					if (i == 0) writer.print(columnString);
+					else writer.print(" & " + columnString);
+				} else writer.print(" & " + columnString);
 				}
 				index = index + 1;
 			}
