@@ -167,11 +167,10 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	}
 
 	/**
-	 * Ignore this kind of AST node so far
-	 * So we can not find local type
+	 * Goto its children to find local types
 	 */
 	public boolean visit(Block node) {
-		return false;
+		return true;
 	}
 
 
@@ -415,10 +414,10 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 
 
 	/**
-	 * Ignore this kind of AST node so far
+	 * Goto its children to find local types
 	 */
 	public boolean visit(MethodDeclaration node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -646,10 +645,10 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	}
 
 	/**
-	 * Ignore this kind of AST node so far, so we can not find local type
+	 * Goto its children to find local type.
 	 */
 	public boolean visit(TypeDeclarationStatement node) {
-		return false;
+		return true;
 	}
 
 	/**

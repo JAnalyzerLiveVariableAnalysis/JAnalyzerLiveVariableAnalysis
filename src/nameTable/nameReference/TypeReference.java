@@ -140,7 +140,7 @@ public class TypeReference extends NameReference {
 		for (int count = 0; count < dimension; count++) {
 			arrayString = arrayString + "[]";
 		}
-		return arrayString + name;
+		return name + arrayString;
 	}
 
 	/**
