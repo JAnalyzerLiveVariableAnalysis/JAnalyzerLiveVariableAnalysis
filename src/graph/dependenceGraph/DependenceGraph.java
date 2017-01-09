@@ -20,4 +20,7 @@ public class DependenceGraph extends AbstractGraph {
 		this.kind = kind;
 	}
 	
+	public DependenceGraphKind getKind() {
+		return kind;
+	}
 }

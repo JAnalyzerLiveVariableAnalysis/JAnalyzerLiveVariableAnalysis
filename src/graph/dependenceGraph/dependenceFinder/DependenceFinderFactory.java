@@ -29,6 +29,8 @@ public class DependenceFinderFactory {
 			result.add(new NameBasedMethodCallTypeFinder(tableManager));
 			result.add(new NameBasedTypeCallMethodFinder(tableManager));
 			result.add(new NameBasedTypeCallTypeFinder(tableManager));
+		} else if (kind == DependenceGraphKind.DGK_INHERITANCE) {
+			result.add(new NameBasedTypeInheritTypeFinder(tableManager));
 		} else if (kind == DependenceGraphKind.DGK_ALL) {
 			result.add(new NameBasedTypeMemberTypeFinder(tableManager));
 			result.add(new NameBasedMethodSignatureTypeFinder(tableManager));

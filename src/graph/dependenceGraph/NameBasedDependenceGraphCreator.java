@@ -121,7 +121,7 @@ public class NameBasedDependenceGraphCreator {
 	 * entities.  
 	 */
 	public DependenceGraph create(String id, DependenceGraphKind kind, List<NameScope> startEntityList, List<NameScope> endEntityList) {
-		DependenceGraph result = new DependenceGraph(id);
+		DependenceGraph result = new DependenceGraph(id, kind);
 		TreeSet<GraphNode> nodeSet = new TreeSet<GraphNode>();
 		
 		NameReferenceCreator referenceCreator = new NameReferenceCreator(tableManager);

@@ -5,9 +5,7 @@ import java.util.List;
 import nameTable.NameTableManager;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
-import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.TypeDefinition;
-import nameTable.nameReference.NameReference;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
 
