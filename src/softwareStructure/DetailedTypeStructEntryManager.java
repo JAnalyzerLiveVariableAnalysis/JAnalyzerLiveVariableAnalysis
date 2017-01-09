@@ -11,7 +11,7 @@ import nameTable.nameDefinition.DetailedTypeDefinition;
  * @since 2016Äê4ÔÂ6ÈÕ
  * @version 1.0
  */
-class DetailedTypeStructEntryManager {
+public class DetailedTypeStructEntryManager {
 	protected TreeMap<String, DetailedTypeStructEntry> structMap = null;
 	
 	public DetailedTypeStructEntryManager() {

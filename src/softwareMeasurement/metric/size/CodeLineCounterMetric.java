@@ -86,7 +86,7 @@ public class CodeLineCounterMetric extends SoftwareSizeMetric {
 			} else if (kind == NameScopeKind.NSK_PACKAGE) {
 				PackageDefinition packageDefinition = (PackageDefinition)objectScope;
 				counterPackageSourceCode(packageDefinition);
-			} else if (kind == NameScopeKind.NSK_TYPE) {
+			} else if (kind == NameScopeKind.NSK_DETAILED_TYPE) {
 				DetailedTypeDefinition typeDefinition = (DetailedTypeDefinition)objectScope;
 				counterClassSourceCode(typeDefinition);
 

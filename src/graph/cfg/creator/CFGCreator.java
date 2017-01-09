@@ -3,13 +3,17 @@ package graph.cfg.creator;
 import graph.cfg.CFGEdge;
 import graph.cfg.ControlFlowGraph;
 import graph.cfg.ExecutionPoint;
+import nameTable.NameTableASTBridge;
+import nameTable.NameTableManager;
+import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.MethodDefinition;
+import nameTable.nameScope.CompilationUnitScope;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -17,6 +21,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import sourceCodeAST.SourceCodeLocation;
+import sourceCodeAST.SourceCodeLocationASTVisitor;
 
 /**
  * Create CFG for java source code file
@@ -25,9 +30,14 @@ import sourceCodeAST.SourceCodeLocation;
  * @version 1.0
  * 
  * @update 2013/12/30 Zhou Xiaocong
- * 		Add a method ControlFlowGraph create(MethodDeclaration methodDec, String className) for create CFG for a given method!
+ * 		Add a method ControlFlowGraph create(MethodDeclaration methodDec, String className) for creating CFG for a given method!
  * 		Add a method ASTNode matchASTNode(ExecutionPoint point) to match the AST node for an execution point.
  * 			Add a class MatchExecutionPointASTVisitor to support matching AST node for an execution point.
+ * 
+ * @update 2017/1/1 Zhou Xiaocong
+ * 		Add a public static method ControlFlowGraph create(NameTableManager nameTable, MethodDefinition method) for creating CFG 
+ * 			for a given method definition in the given NameTableManager!
+ * 		Add a class MatchExecutionPointASTVisitor to support matching AST node for an execution point by giving method definition and name table.
  *
  */
 public class CFGCreator {
@@ -193,44 +203,104 @@ public class CFGCreator {
 		SourceCodeLocation start = point.getStartLocation();
 		SourceCodeLocation end = point.getEndLocation();
 		
-		int position = astRoot.getPosition(start.getLineNumber(), start.getColumn());
-		int length = astRoot.getPosition(end.getLineNumber(), end.getColumn()) - position;
-		
-		MatchExecutionPointASTVisitor visitor = new MatchExecutionPointASTVisitor(position, length);
+		SourceCodeLocationASTVisitor visitor = new SourceCodeLocationASTVisitor(astRoot, start, end);
 		astRoot.accept(visitor);
 		ASTNode result = visitor.getMatchedNode();
 		
 		return result;
 	}
+	
+	/**
+	 * Match an AST node for a given execution point without using the AST node stored in the point, since we may restore a CFG from 
+	 * a file which can not save the AST node of the execution points in the future, and then we may need match the execution point with
+	 * an abstract syntax tree build by the same source file.  
+	 */
+	public static ASTNode matchASTNode(NameTableManager nameTable, MethodDefinition method, ExecutionPoint point) {
+		CompilationUnitScope unitScope = nameTable.getEnclosingCompilationUnitScope(method);
+		if (unitScope == null) return null;
+		
+		String sourceFileName = unitScope.getUnitName();
+		CompilationUnit astRoot = nameTable.getSouceCodeFileSet().findSourceCodeFileASTRootByFileUnitName(sourceFileName);
+		if (astRoot == null) return null;
+
+		SourceCodeLocation start = point.getStartLocation();
+		SourceCodeLocation end = point.getEndLocation();
+		
+		SourceCodeLocationASTVisitor visitor = new SourceCodeLocationASTVisitor(astRoot, start, end);
+		astRoot.accept(visitor);
+		ASTNode result = visitor.getMatchedNode();
+		
+		return result;
+	}
+
+	/**
+	 * Create control flow graph for a method by given an object of MethodDefinition and its NameTableManager
+	 */
+	public static ControlFlowGraph create(NameTableManager nameTable, MethodDefinition method) {
+		CompilationUnitScope unitScope = nameTable.getEnclosingCompilationUnitScope(method);
+		if (unitScope == null) return null;
+		
+		String sourceFileName = unitScope.getUnitName();
+		CompilationUnit astRoot = nameTable.getSouceCodeFileSet().findSourceCodeFileASTRootByFileUnitName(sourceFileName);
+		if (astRoot == null) return null;
+		
+		// Set ExecutionPointFactory's sourceFileName and root node
+		ExecutionPointFactory.setCompilationUnit(sourceFileName, astRoot);
+
+		NameTableASTBridge bridge = new NameTableASTBridge(nameTable);
+		MethodDeclaration methodDeclaration = bridge.findASTNodeForMethodDefinition(method);
+		if (methodDeclaration == null) return null;
+		
+		DetailedTypeDefinition type = nameTable.getEnclosingDetailedTypeDefinition(method);
+		
+		String id = method.getUniqueId();
+		String label = method.getFullQualifiedName();
+		String description = label;
+
+		Block methodBody = methodDeclaration.getBody();
+		if (methodBody == null) return null;
+		
+		// Create a ControFlowGraph object
+		ControlFlowGraph currentCFG = new ControlFlowGraph(id, label, description);
+		currentCFG.setSourceFile(sourceFileName, astRoot);
+		currentCFG.setMethod(type.getFullQualifiedName(), method.getSimpleName(), methodDeclaration);
+		
+		// Create the start node for the CFG of the method
+		ExecutionPoint startNode = ExecutionPointFactory.createStart(methodDeclaration);
+		currentCFG.setAndAddStartNode(startNode);
+		
+		// Create a precede node list precedeNodeList, which only contains the node startNode
+		List<PossiblePrecedeNode> precedeNodeList = new LinkedList<PossiblePrecedeNode>();
+		precedeNodeList.add(new PossiblePrecedeNode(startNode, PossiblePrecedeReasonType.PPR_SEQUENCE, null));
+
+		// Create CFG for the body of the method and get new precedeNodeList
+		StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(methodBody);
+		precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList);
+		
+		// Create end and abnormal end node for the entire method
+		ExecutionPoint endNode = ExecutionPointFactory.createEnd(methodDeclaration);
+		currentCFG.setAndAddEndNode(endNode);
+		
+		ExecutionPoint abnormalEndNode = null;
+		// Traverse precedeNodeList, for each precedeNode in the list, if it is a PPR_RETURN or PPR_SEQUENCE, add edge <precedeNode, endNode>,
+		// if it is a PPR_THROW, create abnormalEndNode, and add edge <precedeNode, abnormalEndNode>
+		for (PossiblePrecedeNode precedeNode : precedeNodeList) {
+			PossiblePrecedeReasonType reason = precedeNode.getReason();
+			String edgeLabel = precedeNode.getLabel();
+			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE || reason == PossiblePrecedeReasonType.PPR_RETURN) {
+				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), endNode, edgeLabel));
+			} else if (reason == PossiblePrecedeReasonType.PPR_THROW) {
+				if (abnormalEndNode == null) {
+					abnormalEndNode = ExecutionPointFactory.createAbnormalEnd(methodDeclaration);
+					currentCFG.setAndAddAbnormalEndNode(abnormalEndNode);
+				}
+				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), abnormalEndNode, edgeLabel));
+			} else {
+				throw new AssertionError("After create CFG for the entire method, there are unexpected precede nodes in the precedeNodeList");
+			} 
+		}
+		
+		return currentCFG;
+	}
 }
 
-class MatchExecutionPointASTVisitor extends ASTVisitor {
-	private int nodePosition = 0;
-	private int nodeLength = 0;
-	
-	private ASTNode matchedNode = null;
-	
-	public MatchExecutionPointASTVisitor(int position, int length) {
-		nodePosition = position;
-		nodeLength = length;
-	}
-	
-	public ASTNode getMatchedNode() {
-		return matchedNode;
-	}
-	
-	@Override
-	public boolean preVisit2(ASTNode node) {
-		if (matchedNode != null) return false;
-		
-		int position = node.getStartPosition();
-		int length = node.getLength();
-		
-		// So far, we match the AST node according to its position and its length!!!
-		if (position == nodePosition && length == nodeLength) matchedNode = node;
-		
-		if (matchedNode == null) return true;		// Do not match the AST node, we need to visit its children.
-		else return false;							// We have matched the AST node, we DO NOT need to visit its children.
-	}
-	
-}

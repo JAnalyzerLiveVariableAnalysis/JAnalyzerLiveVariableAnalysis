@@ -237,8 +237,7 @@ public class NameTableManager {
 						if (unit.getUnitName().equals(fullUnitName)) unit.accept(finder);
 					}
 				}
-			}
-			return null;
+			} else return null;
 		} else systemScope.accept(finder);
 		return finder.getResult();
 	}
@@ -343,7 +342,7 @@ public class NameTableManager {
 		NameScope currentScope = name.getScope();
 		
 		while (currentScope != null) {
-			if (currentScope.getScopeKind() == NameScopeKind.NSK_TYPE) return (DetailedTypeDefinition)currentScope;
+			if (currentScope.getScopeKind() == NameScopeKind.NSK_DETAILED_TYPE) return (DetailedTypeDefinition)currentScope;
 			currentScope = currentScope.getEnclosingScope();
 		}
 		
@@ -357,7 +356,7 @@ public class NameTableManager {
 		NameScope currentScope = name.getScope();
 		
 		while (currentScope != null) {
-			if (currentScope.getScopeKind() == NameScopeKind.NSK_TYPE) return (DetailedTypeDefinition)currentScope;
+			if (currentScope.getScopeKind() == NameScopeKind.NSK_DETAILED_TYPE) return (DetailedTypeDefinition)currentScope;
 			currentScope = currentScope.getEnclosingScope();
 		}
 		

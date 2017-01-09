@@ -14,6 +14,8 @@ import java.util.TreeSet;
 import nameTable.NameTableManager;
 import nameTable.creator.NameDefinitionCreator;
 import nameTable.creator.NameTableCreator;
+import nameTable.filter.DetailedTypeDefinitionFilter;
+import nameTable.filter.NameDefinitionNameFilter;
 import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
@@ -46,7 +48,7 @@ public class TestSoftwareStructManager {
 							rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\", rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\main\\org\\apache\\tools\\ant\\",
 		};
 		
-		String path = paths[0];
+		String path = paths[4];
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 
 		PrintWriter writer = new PrintWriter(System.out);
@@ -166,16 +168,13 @@ public class TestSoftwareStructManager {
 		Debug.time("Begin creating structure....");
 		Debug.disable();
 		SoftwareStructManager structManager = new SoftwareStructManager(nameTableManager);
-		if (path.contains("ProgramAnalysis")) structManager.createSoftwareStructure();
-		else structManager.readOrCreateSoftwareStructure();
-//		structManager.createSoftwareStructure();
+		structManager.createSoftwareStructure();
 		
 		Debug.enable();
 		Debug.time("End creating.....");
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new DetailedTypeFilter());
-		SystemScope rootScope = nameTableManager.getSystemScope();
-		rootScope.accept(visitor);
+		visitor.setFilter(new DetailedTypeDefinitionFilter(new NameDefinitionNameFilter("HelloWorld")));
+		nameTableManager.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
 		
 //		int totalCounter = 0;
@@ -253,20 +252,20 @@ public class TestSoftwareStructManager {
 				}
 			}
 			writer.println("\tTotal used other types: " + classSet.size());
-/*
-			Set<MethodDefinition> responseSet = structManager.getResponseSet(type);
-			writer.println("\tResponse set: ");
-			if (classList != null) {
-				for (MethodDefinition methodInSet : responseSet) {
-					writer.println("\t\t" + methodInSet.getSimpleName() + " @ " + methodInSet.getLocation().toFullString());
-				}
-			}
-			writer.println("\tResponse set size: " + responseSet.size());
+
+//			Set<MethodDefinition> responseSet = structManager.getResponseSet(type);
+//			writer.println("\tResponse set: ");
+//			if (classList != null) {
+//				for (MethodDefinition methodInSet : responseSet) {
+//					writer.println("\t\t" + methodInSet.getUniqueId());
+//				}
+//			}
+//			writer.println("\tResponse set size: " + responseSet.size());
 
 			List<MethodDefinition> implementedMethodList = structManager.getImplementedMethodList(type);
 			for (MethodDefinition method : implementedMethodList) {
 				
-//				Debug.time("\tScan method " + method.getSimpleName());
+				Debug.time("\tScan method " + method.getSimpleName());
 				writer.println("\tMethod: " + method.getSimpleName());
 				
 				List<TypeDefinition> parameterTypeList = structManager.getParameterTypeList(method);
@@ -324,7 +323,6 @@ public class TestSoftwareStructManager {
 				} 
 				
 			}
-*/
 		}
 		
 		Debug.enable();
@@ -374,7 +372,7 @@ public class TestSoftwareStructManager {
 		
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new DetailedTypeFilter());
+		visitor.setFilter(new DetailedTypeDefinitionFilter());
 		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -419,7 +417,7 @@ public class TestSoftwareStructManager {
 		
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new DetailedTypeFilter());
+		visitor.setFilter(new DetailedTypeDefinitionFilter());
 		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -523,7 +521,7 @@ public class TestSoftwareStructManager {
 		
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new DetailedTypeFilter());
+		visitor.setFilter(new DetailedTypeDefinitionFilter());
 		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -624,7 +622,7 @@ public class TestSoftwareStructManager {
 		
 		SoftwareStructManager structManager = new SoftwareStructManager(manager);
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
-		visitor.setFilter(new DetailedTypeFilter());
+		visitor.setFilter(new DetailedTypeDefinitionFilter());
 		SystemScope rootScope = manager.getSystemScope();
 		rootScope.accept(visitor);
 		List<NameDefinition> definitionList = visitor.getResult();
@@ -732,17 +730,5 @@ public class TestSoftwareStructManager {
 	}
 }
 
-class DetailedTypeFilter extends NameTableFilter {
-
-	@Override
-	public boolean accept(NameDefinition definition) {
-		if (!definition.isDetailedType()) return false;
-		return true;
-//		if (definition.getSimpleName().equals("ContentDetector") || definition.getSimpleName().equals("BundleManifest")) return true;
-//		if (definition.getSimpleName().equals("Axis") || definition.getSimpleName().equals("JFreeChart") || definition.getSimpleName().equals("Plot")) return true;
-//		else return false;
-	}
-
-}
 
 

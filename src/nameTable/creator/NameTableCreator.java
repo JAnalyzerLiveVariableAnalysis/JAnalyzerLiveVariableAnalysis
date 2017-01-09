@@ -673,7 +673,7 @@ public class NameTableCreator {
 		if (parent.getScopeKind() == NameScopeKind.NSK_LOCAL) {
 			LocalScope currScope = (LocalScope)parent;
 			currScope.addSubLocalScope(localScope);
-		} else if (parent.getScopeKind() != NameScopeKind.NSK_METHOD && parent.getScopeKind() != NameScopeKind.NSK_TYPE) {
+		} else if (parent.getScopeKind() != NameScopeKind.NSK_METHOD && parent.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE) {
 			throw new AssertionError("The parent scope of a local scope must be a local scope, a method, or a type!");
 		}
 		return localScope;

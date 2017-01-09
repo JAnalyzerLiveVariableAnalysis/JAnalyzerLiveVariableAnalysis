@@ -125,7 +125,8 @@ public class NameReference implements Comparable<NameReference> {
 	public TypeDefinition getEnclosingTypeDefinition() {
 		NameScope currentScope = scope;
 		while (currentScope != null) {
-			if (currentScope.getScopeKind() == NameScopeKind.NSK_TYPE) return (TypeDefinition)currentScope; 
+			if (currentScope.getScopeKind() == NameScopeKind.NSK_DETAILED_TYPE ||
+					currentScope.getScopeKind() == NameScopeKind.NSK_ENUM_TYPE) return (TypeDefinition)currentScope; 
 			currentScope = currentScope.getEnclosingScope();
 		}
 		return null;

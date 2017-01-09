@@ -192,7 +192,7 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 				if (betterScope.getScopeKind() == NameScopeKind.NSK_METHOD) {
 					qualifier = ((MethodDefinition)betterScope).getFullQualifiedName();
 					break;
-				} else if (betterScope.getScopeKind() == NameScopeKind.NSK_TYPE) {
+				} else if (betterScope.getScopeKind() == NameScopeKind.NSK_DETAILED_TYPE) {
 					qualifier = ((DetailedTypeDefinition)betterScope).getFullQualifiedName();
 					break;
 				}

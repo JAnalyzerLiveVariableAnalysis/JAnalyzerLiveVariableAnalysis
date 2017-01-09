@@ -54,6 +54,7 @@ public class TestClassDependence {
 //		String path  = systemPath + versionPaths[16] + "\\";
 	
 		generatePackageDependenceGraph(paths[2], netFile, resultNetFile, resultDotFile);
+		
 /*		
 		try {
 			PackageDependenceGraph pdg = PackageDependenceGraph.readFromNetFile(resultNetFile);

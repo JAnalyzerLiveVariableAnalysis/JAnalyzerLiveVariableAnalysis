@@ -10,7 +10,7 @@ import nameTable.nameDefinition.MethodDefinition;
  * @since 2016Äê4ÔÂ6ÈÕ
  * @version 1.0
  */
-class MethodStructEntryManager {
+public class MethodStructEntryManager {
 	protected TreeMap<String, MethodStructEntry> structMap = null;
 	protected String systemPath = null;
 	

@@ -115,7 +115,7 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 	 */
 	@Override
 	public NameScopeKind getScopeKind() {
-		return NameScopeKind.NSK_TYPE;
+		return NameScopeKind.NSK_DETAILED_TYPE;
 	}
 
 	/* (non-Javadoc)

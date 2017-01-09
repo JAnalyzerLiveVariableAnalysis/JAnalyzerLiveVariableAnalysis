@@ -14,6 +14,7 @@ import nameTable.nameDefinition.EnumTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
+import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameReference.MethodReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
@@ -161,6 +162,64 @@ public class NameReferenceCreator {
 	}
 
 	/**
+	 * Create and return all name references of the given type declaration node when we know its corresponding detailed type definition.
+	 * The created references do not include its super types, and all references in its method signature. 
+ 	 */
+	public List<NameReference> createReferencesForTypeBody(String unitName, CompilationUnit root, DetailedTypeDefinition type, TypeDeclaration node) {
+		List<NameReference> resultList = new ArrayList<NameReference>();
+
+		// Process the initializers in the node
+		@SuppressWarnings("unchecked")
+		List<BodyDeclaration> bodyList = node.bodyDeclarations();
+		for (BodyDeclaration bodyDecl : bodyList) {
+			if (bodyDecl.getNodeType() == ASTNode.INITIALIZER) {
+				Initializer initializer = (Initializer)bodyDecl;
+				List<NameReference> result = createReferences(unitName, root, type, initializer);
+				resultList.addAll(result);
+			}
+		}
+		
+		// Process the field declarations in the node
+		FieldDeclaration[] fields = node.getFields();
+		for (int index = 0; index < fields.length; index++) {
+			List<NameReference> result = createReferences(unitName, root, type, fields[index]);
+			resultList.addAll(result);
+		}
+		
+		// Process the method declarations in the node
+		MethodDeclaration[] methods = node.getMethods();
+		for (int index = 0; index < methods.length; index++) {
+
+			List<MethodDefinition> methodList = type.getMethodList();
+			for (MethodDefinition methodInType : methodList) {
+				String methodSimpleName = methods[index].getName().getIdentifier();
+				SourceCodeLocation location = SourceCodeLocation.getStartLocation(methods[index], root, unitName);
+				
+				if (methodInType.getSimpleName().equals(methodSimpleName) && methodInType.getLocation().equals(location)) {
+					List<NameReference> result = createReferencesForMethodBody(unitName, root, methodInType, methods[index]);
+					resultList.addAll(result);
+				}
+			}
+		}
+
+		// Process the type declarations in the node
+		TypeDeclaration[] typeMembers = node.getTypes();
+		for (int index = 0; index < typeMembers.length; index++) {
+			String declFullName = typeMembers[index].getName().getIdentifier();
+			SourceCodeLocation location = SourceCodeLocation.getStartLocation(typeMembers[index], root, unitName);
+			
+			List<DetailedTypeDefinition> typeList = type.getTypeList();
+			for (DetailedTypeDefinition detailedType : typeList) {
+				if (detailedType.getSimpleName().equals(declFullName) && detailedType.getLocation().equals(location)) {
+					List<NameReference> result = createReferences(unitName, root, detailedType, typeMembers[index]);
+					resultList.addAll(result);
+				}
+			}
+		}
+		return resultList;
+	}
+	
+	/**
 	 * Create and return all name references of the given type declaration node.
  	 */
 	public List<NameReference> createReferences(DetailedTypeDefinition type) {
@@ -175,6 +234,23 @@ public class NameReferenceCreator {
 		if (typeDeclaration == null) return new ArrayList<NameReference>();
 		
 		return createReferences(unitScope.getUnitName(), root, type, typeDeclaration);
+	}
+
+	/**
+	 * Create and return all name references of the given type declaration node.
+ 	 */
+	public List<NameReference> createReferencesForTypeBody(DetailedTypeDefinition type) {
+		CompilationUnitScope unitScope = tableManager.getEnclosingCompilationUnitScope(type);
+		if (unitScope == null) return new ArrayList<NameReference>();
+
+		NameTableASTBridge bridge = new NameTableASTBridge(tableManager);
+		CompilationUnit root = bridge.findASTNodeForCompilationUnitScope(unitScope);
+		if (root == null) return new ArrayList<NameReference>();
+		
+		TypeDeclaration typeDeclaration = bridge.findASTNodeForDetailedTypeDefinition(type);
+		if (typeDeclaration == null) return new ArrayList<NameReference>();
+		
+		return createReferencesForTypeBody(unitScope.getUnitName(), root, type, typeDeclaration);
 	}
 
 	/**
@@ -306,6 +382,14 @@ public class NameReferenceCreator {
 		TypeReference returnType = method.getReturnType();
 		if (returnType != null) resultList.add(returnType);
 		
+		List<VariableDefinition> paraList = method.getParameterList();
+		if (paraList != null) {
+			for (VariableDefinition parameter : paraList) {
+				TypeReference paraType = parameter.getType();
+				resultList.add(paraType);
+			}
+		}
+		
 		List<TypeReference> throwTypeList = method.getThrowTypeList();
 		if (throwTypeList != null) resultList.addAll(throwTypeList);
 		
@@ -323,6 +407,26 @@ public class NameReferenceCreator {
 	}
 
 	/**
+	 * Create and return all name references for a method declaration node in the give detailed type definition 
+	 * The created references do not include all references in its signature (i.e. return type, parameter list and throw list)
+	 */
+	public List<NameReference> createReferencesForMethodBody(String unitName, CompilationUnit root, MethodDefinition method, MethodDeclaration node) {
+		List<NameReference> resultList = new ArrayList<NameReference>();
+
+		// Scan the body of the method
+		Block body = node.getBody();
+		LocalScope localScope = method.getBodyScope();
+		if (body != null) {
+			BlockReferenceASTVisitor localVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope);
+			// Then visit the block
+			body.accept(localVisitor);
+			resultList.addAll(localVisitor.getResult());
+		}
+		return resultList;
+	}
+
+	
+	/**
 	 * Create and return all name references for the given method definition 
 	 */
 	public List<NameReference> createReferences(MethodDefinition method) {
@@ -338,6 +442,25 @@ public class NameReferenceCreator {
 		if (methodDeclaration == null) return new ArrayList<NameReference>();
 		
 		return createReferences(unitScope.getUnitName(), root, method, methodDeclaration);
+	}
+
+	/**
+	 * Create and return all name references for the given method definition 
+	 * The created references do not include all references in its signature (i.e. return type, parameter list and throw list)
+	 */
+	public List<NameReference> createReferencesForMethodBody(MethodDefinition method) {
+		CompilationUnitScope unitScope = tableManager.getEnclosingCompilationUnitScope(method);
+		DetailedTypeDefinition type = tableManager.getEnclosingDetailedTypeDefinition(method);
+		if (unitScope == null || type == null) return new ArrayList<NameReference>();
+
+		NameTableASTBridge bridge = new NameTableASTBridge(tableManager);
+		CompilationUnit root = bridge.findASTNodeForCompilationUnitScope(unitScope);
+		if (root == null) return new ArrayList<NameReference>();
+		
+		MethodDeclaration methodDeclaration = bridge.findASTNodeForMethodDefinition(method);
+		if (methodDeclaration == null) return new ArrayList<NameReference>();
+		
+		return createReferencesForMethodBody(unitScope.getUnitName(), root, method, methodDeclaration);
 	}
 	
 	/**

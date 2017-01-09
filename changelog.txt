@@ -1,0 +1,12 @@
+2016/12/27
+
+按文档完成重构 sourceCodeAST 这个程序包以及名字表相关的程序包
+
+
+2016/12/27-2017/1/9
+
+1. 修复 NameTableManager 中函数 NameDefinition findDefinitionById(String nameDefinitionId) 的错误；
+
+2. 将枚举 NameScopeKind 中的 NSK_TYPE 分为 NSK_DETAILED_TYPE  和 NSK_ENUM_TYPE 以区分详细类型与枚举类型，这个修改涉及到很多已有的类。
+
+3. 实现了系统依赖图的生成。

@@ -24,7 +24,7 @@ public abstract class NameScopeMeasureDistribution {
 	// To mark if the corresponding value is usable or not
 	protected boolean[] valueUsableArray = null;
 	protected NameScope[] scopeArray = null;
-	protected NameScopeKind scopeKind = NameScopeKind.NSK_TYPE;
+	protected NameScopeKind scopeKind = NameScopeKind.NSK_DETAILED_TYPE;
 
 	public NameScopeMeasureDistribution(String identifier) {
 		this.identifier = identifier;

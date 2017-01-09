@@ -88,7 +88,7 @@ public class FieldDefinition extends NameDefinition {
 	 */
 	public DetailedTypeDefinition getEnclosingType() {
 		NameScope currentScope = scope;
-		while (currentScope.getScopeKind() != NameScopeKind.NSK_TYPE) currentScope = currentScope.getEnclosingScope();
+		while (currentScope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE) currentScope = currentScope.getEnclosingScope();
 		return (DetailedTypeDefinition)currentScope;
 	}
 	

@@ -372,14 +372,14 @@ class SoftwareStructCreator {
 					NameReferenceGroup group = (NameReferenceGroup)reference;
 					List<NameReference> leafreferenceList = group.getReferencesAtLeaf();
 					for (NameReference leafreference : leafreferenceList) {
-//						if (leafreference.getName().contains("jparse")) {
+//						if (leafreference.getName().contains("mb")) {
 //							System.out.println("\tScan leaf reference " + leafreference.getName() + " of group " + reference.getName());
 //							System.out.println("\t\tLeaf reference bind to " + leafreference.getDefinition().getFullQualifiedName() + ", group bind to " + reference.getDefinition().getFullQualifiedName());
 //						}
 						scanSingleReferenceInMethodBody(typeStructEntry, methodStructEntry, leafreference);
 					}
 				} else {
-//					if (reference.getName().contains("jparse")) {
+//					if (reference.getName().contains("mb")) {
 //						System.out.println("\tScan reference " + reference.toFullString());
 //					}
 					scanSingleReferenceInMethodBody(typeStructEntry, methodStructEntry, reference);

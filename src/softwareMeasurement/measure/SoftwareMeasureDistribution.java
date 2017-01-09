@@ -29,7 +29,7 @@ public class SoftwareMeasureDistribution {
 	// To mark if the corresponding value is usable or not
 	protected boolean[] valueUsableArray = null;
 	protected NameScope[] scopeArray = null;
-	protected NameScopeKind scopeKind = NameScopeKind.NSK_TYPE;
+	protected NameScopeKind scopeKind = NameScopeKind.NSK_DETAILED_TYPE;
 
 	public SoftwareMeasureDistribution(String identifier) {
 		this.identifier = identifier;
@@ -172,7 +172,7 @@ public class SoftwareMeasureDistribution {
 	 */
 	public void setNameScopeArray(DetailedTypeDefinition[] dtArray) {
 		scopeArray = dtArray;
-		scopeKind = NameScopeKind.NSK_TYPE;
+		scopeKind = NameScopeKind.NSK_DETAILED_TYPE;
 	}
 
 	/**
@@ -199,7 +199,7 @@ public class SoftwareMeasureDistribution {
 		for (int index = 0; index < types.size(); index++) {
 			scopeArray[index] = types.get(index);
 		}
-		scopeKind = NameScopeKind.NSK_TYPE;
+		scopeKind = NameScopeKind.NSK_DETAILED_TYPE;
 	}
 
 	/**

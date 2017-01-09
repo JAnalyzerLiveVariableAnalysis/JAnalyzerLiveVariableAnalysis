@@ -9,7 +9,7 @@ import nameTable.nameDefinition.DetailedTypeDefinition;
  * @since 2016Äê4ÔÂ8ÈÕ
  * @version 1.0
  */
-public class DetailedTypeStructBufferEntry extends DetailedTypeStructEntry{
+class DetailedTypeStructBufferEntry extends DetailedTypeStructEntry{
 	protected int usedTypeSetSize = 0;
 	protected long startPosition = 0;
 	

@@ -7,7 +7,7 @@ import nameTable.nameDefinition.MethodDefinition;
  * @since 2016Äê4ÔÂ8ÈÕ
  * @version 1.0
  */
-public class MethodStructBufferEntry extends MethodStructEntry {
+class MethodStructBufferEntry extends MethodStructEntry {
 	protected int calledMethodMapSize = 0;
 	protected long startPosition = 0;
 

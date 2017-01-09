@@ -111,7 +111,7 @@ public class EnumTypeDefinition extends TypeDefinition implements NameScope {
 
 	@Override
 	public NameScopeKind getScopeKind() {
-		return NameScopeKind.NSK_TYPE;
+		return NameScopeKind.NSK_ENUM_TYPE;
 	}
 
 	@Override

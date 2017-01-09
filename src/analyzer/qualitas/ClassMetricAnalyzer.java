@@ -1898,14 +1898,14 @@ public class ClassMetricAnalyzer {
 		Debug.time("End for metric " + metric + " ......");
 	}
 	
-	public static void groupQualitasRecenMeasureDescriptivesByMetric() {
+	public static void groupQualitasRecentMeasureDescriptivesByMetric() {
 		String[] metricArray = getImportantMetric();
 		for (String metric : metricArray) {
 			groupQualitasRecentMeasureDescriptivesByMetric(metric);
 		}
 	}
 
-	public static void groupQualitasRecenMeasureDescriptivesByIndex() {
+	public static void groupQualitasRecentMeasureDescriptivesByIndex() {
 		String[] indexArray = getImportantDescriptiveIndex();
 		for (String index : indexArray) {
 			groupQualitasRecentMeasureDescriptivesByIndex(index);

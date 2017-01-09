@@ -108,7 +108,7 @@ public class StatementCounterMetric extends SoftwareSizeMetric {
 				} else if (kind == NameScopeKind.NSK_PACKAGE) {
 					PackageDefinition packageDefinition = (PackageDefinition)objectScope;
 					totalStatementNumber += counterPackageStatement(packageDefinition);
-				} else if (kind == NameScopeKind.NSK_TYPE) {
+				} else if (kind == NameScopeKind.NSK_DETAILED_TYPE) {
 					DetailedTypeDefinition typeDefinition = (DetailedTypeDefinition)objectScope;
 					totalStatementNumber += counterClassStatement(typeDefinition);
 				} else if (kind == NameScopeKind.NSK_METHOD) {
