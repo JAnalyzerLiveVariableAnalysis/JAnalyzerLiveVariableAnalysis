@@ -151,6 +151,7 @@ public class ImportedTypeManager {
 	 */
 	static boolean hasDefinedImportedTypeDefinition(SystemScope scope, String fullQualifiedName) {
 		List<ImportedTypeDefinition> importedTypeList = scope.getImportedTypeList();
+		if (importedTypeList == null) return false;
 		for (ImportedTypeDefinition importedType : importedTypeList) {
 			if (fullQualifiedName.equals(importedType.getFullQualifiedName())) return true;
 		}

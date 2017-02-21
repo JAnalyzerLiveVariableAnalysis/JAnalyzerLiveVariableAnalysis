@@ -189,8 +189,11 @@ public class NameTableCreator {
 			if (codeFile.hasCreatedAST()) {
 				CompilationUnit root = codeFile.getASTRoot();
 				CompilationUnitFile currentUnitFile = new CompilationUnitFile(unitName, root);
-				
-				int typeNumber = scanCurrentCompilationUnit(currentUnitFile, systemScope);
+
+				int rootLength = root.getLength();
+				int typeNumber = 0;
+				// 2017/2/17: (rootLength <= 0) implies this file has no character. 
+				if (rootLength > 0) typeNumber = scanCurrentCompilationUnit(currentUnitFile, systemScope);
 				if (typeNumber <= 0) {
 					String errorMessage = "NoScanedType : there is no class, interface or enumeration!";
 					currentUnitFile.setErrorMessage(errorMessage);

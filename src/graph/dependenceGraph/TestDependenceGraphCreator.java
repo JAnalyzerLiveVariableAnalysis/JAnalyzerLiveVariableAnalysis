@@ -16,6 +16,7 @@ import nameTable.creator.NameTableCreator;
 import nameTable.filter.NameScopeFilter;
 import nameTable.filter.NameScopeKindFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.PackageDefinition;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
@@ -78,7 +79,7 @@ public class TestDependenceGraphCreator {
 		Debug.setStart("Begin create CDG...., list size " + scopeList.size());
 		nameBasedDGCreator.setProgressWriter(System.out);
 		nameBasedDGCreator.setIncludeZeroDegreeNode(false);
-		DependenceGraph graph = nameBasedDGCreator.create("Dependence_Graph", DependenceGraphKind.DGK_INHERITANCE, scopeList, NameScopeKind.NSK_DETAILED_TYPE);
+		DependenceGraph graph = nameBasedDGCreator.create("Dependence_Graph", DependenceGraphKind.DGK_INVOCATION, scopeList, NameScopeKind.NSK_METHOD);
 		Debug.time("End creating CDG....");
 
 		if (graph != null) {
@@ -96,11 +97,12 @@ public class TestDependenceGraphCreator {
 		List<NameScope> result = new ArrayList<NameScope>();
 		NameScopeFilter filter = new NameScopeFilter() {
 			public boolean accept(NameScope scope) {
-				if (scope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE) return false;
-				DetailedTypeDefinition type = (DetailedTypeDefinition)scope;
+				if (scope.getScopeKind() != NameScopeKind.NSK_METHOD) return false;
+				MethodDefinition method = (MethodDefinition)scope;
 //				if (scope.getScopeName().contains("nameTable")) return true;
-				PackageDefinition packageDef = type.getEnclosingPackage();
-				if (packageDef.getFullQualifiedName().contains("nameDefinition")) return true;
+				DetailedTypeDefinition type = method.getEnclosingType();
+				if (type.getFullQualifiedName().contains("DetailedTypeDefinition")) return true;
+//				if (method.getSimpleName().contains("create")) return true;
 				return false;
 			}
 		};

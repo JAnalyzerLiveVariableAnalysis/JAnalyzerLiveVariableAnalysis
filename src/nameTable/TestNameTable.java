@@ -57,7 +57,7 @@ public class TestNameTable {
 
 		
 		String[] paths = {"C:\\QualitasPacking\\recent\\eclipse_SDK\\eclipse_SDK-4.3\\", "C:\\QualitasPacking\\recent\\jfreechart\\jfreechart-1.0.13\\", 
-							rootPath + "ZxcWork\\JAnalyzer\\src\\", rootPath + "ZxcTools\\EclipseSource\\org\\", 
+							rootPath + "ZxcWork\\JAnalyzer\\src\\", rootPath + "ZxcTools\\EclipseSource\\org\\", rootPath + "ZxcTemp\\testcase\\",
 							rootPath + "ZxcWork\\ToolKit\\src\\sourceCodeAsTestCase\\CNExample.java", rootPath + "ZxcDeveloping\\OOPAndJavaExamples\\automata\\src\\", 
 							rootPath + "ZxcProject\\AspectViz\\ZxcWork\\SortAnimator4\\", rootPath + "ZxcTools\\JDKSource\\", 
 							rootPath + "ZxcCourse\\JavaProgramming\\JHotDraw5.2\\sources\\", rootPath + "ZxcWork\\FaultLocalization\\src\\", 
@@ -66,7 +66,7 @@ public class TestNameTable {
 							rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\", rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\main\\org\\apache\\tools\\ant\\",
 		};
 		
-		String path = paths[2];
+		String path = paths[4];
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 
 		PrintWriter writer = new PrintWriter(System.out);
@@ -87,13 +87,13 @@ public class TestNameTable {
 		}
 		
 		try {
-//			printAllNames(path, result);
+			printAllNames(path, result);
 //			printAllDefinitions(path, result);
 //			printAllDefinitionsToDataTable(path, result);
 //			printAllNameScopesToDataTable(path, result);
 //			printAllReferencesToTable(path, result);
 //			printReferenceBindToDefinition(path, result);
-			printNamesInCFG(path, result);
+//			printNamesInCFG(path, result);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 		}
@@ -112,7 +112,7 @@ public class TestNameTable {
 		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
 
 		Debug.setStart("Begin creating system, path = " + path);
-		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
+		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out));
 		if (creator.hasError()) {
 			System.out.println("There are " + creator.getErrorUnitNumber() + " error unit files:");
 			creator.printErrorUnitList(new PrintWriter(System.out));
