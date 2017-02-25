@@ -2,6 +2,7 @@ package nameTable.creator;
 
 import java.util.List;
 
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.ArrayCreation;
 import org.eclipse.jdt.core.dom.ArrayInitializer;
@@ -35,9 +36,12 @@ import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import nameTable.nameDefinition.DetailedTypeDefinition;
+import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
+import nameTable.nameScope.NameScopeKind;
 
 /**
  * The expression visitor for creating all name definitions, while ignoring name references as far as possible
@@ -80,7 +84,7 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(ArrayInitializer node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -88,7 +92,7 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(Assignment node) {
-		return false;
+		return true;
 	}
 	
 	/**
@@ -104,7 +108,30 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * Process the anonymous class and its member!
 	 */
 	public boolean visit(ClassInstanceCreation node) {
-		// The children of the node have been visited, so we do not need to goto its children
+		// Visit the type of the node
+		Type type = node.getType();
+		typeVisitor.reset(scope);
+		type.accept(typeVisitor);
+		TypeReference typeRef = typeVisitor.getResult();
+		
+		// Process the anonymous class declaration in the node!
+		AnonymousClassDeclaration anonymousClass = node.getAnonymousClassDeclaration();
+		if (anonymousClass != null) {
+			String qualifier = scope.getScopeName();
+			// Find the full qualified name of the enclosing method or type as the name qualifier of this anonymous class.
+			NameScope betterScope = scope;
+			while (betterScope.getEnclosingScope() != null) {
+				if (betterScope.getScopeKind() == NameScopeKind.NSK_METHOD) {
+					qualifier = ((MethodDefinition)betterScope).getFullQualifiedName();
+					break;
+				} else if (betterScope.getScopeKind() == NameScopeKind.NSK_DETAILED_TYPE) {
+					qualifier = ((DetailedTypeDefinition)betterScope).getFullQualifiedName();
+					break;
+				}
+				betterScope = betterScope.getEnclosingScope();
+			}
+			creator.scan(unitFile, qualifier, anonymousClass, scope, typeRef);
+		}
 		return false;
 	}
 
@@ -129,7 +156,7 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(InfixExpression node) {
-		return false;
+		return true;
 	}
 	
 	/**
@@ -227,7 +254,7 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(SuperFieldAccess node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -235,7 +262,7 @@ public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(SuperMethodInvocation node) {
-		return false;
+		return true;
 	}
 
 	/**

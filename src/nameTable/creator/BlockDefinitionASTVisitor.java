@@ -52,6 +52,7 @@ import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.VariableDefinition;
+import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
@@ -294,7 +295,7 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 	 * Ignore this kind of AST node so far, since it can not occur in a block
 	 */
 	public boolean visit(FieldDeclaration node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -444,7 +445,7 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 	 * There is no name definition in this kind of AST expression node, ignore the node! 
 	 */
 	public boolean visit(ReturnStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -475,6 +476,15 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 		
 		// Define the variable to the current scope
 		creator.defineVariable(unitFile, node, typeRef, currentScope);
+
+		// Visit the initializer in the variable declaration
+		Expression initializer = node.getInitializer();
+		if (initializer != null) {
+			expressionVisitor.reset(currentScope);
+			initializer.accept(expressionVisitor);
+			NameReference initExpRef = expressionVisitor.getResult();
+			currentScope.addReference(initExpRef);
+		}
 		
 		return false;
 	}
@@ -535,6 +545,15 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
 			creator.defineVariable(unitFile, varNode, typeRef, currentScope);
+
+			// Visit the initializer in the variable declaration
+			Expression initializer = varNode.getInitializer();
+			if (initializer != null) {
+				expressionVisitor.reset(currentScope);
+				initializer.accept(expressionVisitor);
+				NameReference initExpRef = expressionVisitor.getResult();
+				currentScope.addReference(initExpRef);
+			}
 		}
 		return false;
 	}
@@ -557,6 +576,15 @@ public class BlockDefinitionASTVisitor extends BlockASTVisitor {
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
 			creator.defineVariable(unitFile, varNode, typeRef, currentScope);
+			
+			// Visit the initializer in the variable declaration
+			Expression initializer = varNode.getInitializer();
+			if (initializer != null) {
+				expressionVisitor.reset(currentScope);
+				initializer.accept(expressionVisitor);
+				NameReference initExpRef = expressionVisitor.getResult();
+				currentScope.addReference(initExpRef);
+			}
 		}
 		return false;
 	}

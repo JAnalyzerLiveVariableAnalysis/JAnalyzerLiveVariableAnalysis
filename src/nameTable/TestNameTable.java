@@ -112,7 +112,7 @@ public class TestNameTable {
 		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
 
 		Debug.setStart("Begin creating system, path = " + path);
-		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out));
+		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
 		if (creator.hasError()) {
 			System.out.println("There are " + creator.getErrorUnitNumber() + " error unit files:");
 			creator.printErrorUnitList(new PrintWriter(System.out));
@@ -126,11 +126,11 @@ public class TestNameTable {
 		definitionPrinter.setPrintVariable(true);
 		manager.accept(definitionPrinter);
 		
-		writer.println();
+//		writer.println();
 		
-		NameReferencePrinter referencePrinter = new NameReferencePrinter(writer);
-		referencePrinter.setPrintBindedDefinition();
-		manager.accept(referencePrinter);
+//		NameReferencePrinter referencePrinter = new NameReferencePrinter(writer);
+//		referencePrinter.setPrintBindedDefinition();
+//		manager.accept(referencePrinter);
 		writer.close();
 	}
 
@@ -147,10 +147,12 @@ public class TestNameTable {
 		Debug.time("End creating.....");
 		Debug.flush();
 		
-		NameDefinitionPrinter printer = new NameDefinitionPrinter(new PrintWriter(new File(resultFile)));
-		printer.setPrintVariable(true);
-		manager.accept(printer);
-		printer.close();
+		PrintWriter writer = new PrintWriter(new File(resultFile));
+		NameDefinitionPrinter definitionPrinter = new NameDefinitionPrinter(writer);
+		definitionPrinter.setPrintVariable(true);
+		manager.accept(definitionPrinter);
+		
+		writer.close();
 	}
 
 	/**
