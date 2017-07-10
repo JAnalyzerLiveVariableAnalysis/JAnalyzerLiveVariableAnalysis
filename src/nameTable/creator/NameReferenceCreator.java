@@ -51,9 +51,15 @@ import sourceCodeAST.SourceCodeLocation;
  */
 public class NameReferenceCreator {
 	protected NameTableManager tableManager = null;
+	protected boolean createLiteralReference = false;
 	
 	public NameReferenceCreator(NameTableManager tableManager) {
 		this.tableManager = tableManager;
+	}
+
+	public NameReferenceCreator(NameTableManager tableManager, boolean createLiteralReference) {
+		this.tableManager = tableManager;
+		this.createLiteralReference = createLiteralReference;
 	}
 
 	/**
@@ -266,7 +272,7 @@ public class NameReferenceCreator {
 			if (localScope == null) {
 				throw new AssertionError("Can not find local scope start " + start + ", end " + end + ", for initializer of type " + type.getFullQualifiedName());
 			}
-			BlockReferenceASTVisitor blockVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope);
+			BlockReferenceASTVisitor blockVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope, createLiteralReference);
 			// Then visit all children of the block
 			body.accept(blockVisitor);
 			return blockVisitor.getResult();
@@ -336,7 +342,7 @@ public class NameReferenceCreator {
 	 */
 	public List<NameReference> createReferences(String unitName, CompilationUnit astRoot, DetailedTypeDefinition detailedType, FieldDeclaration node) {
 		CompilationUnitFile unitFile = new CompilationUnitFile(unitName, astRoot);
-		ExpressionReferenceASTVisitor expressionVisitor = new ExpressionReferenceASTVisitor(this, unitFile, detailedType);
+		ExpressionReferenceASTVisitor expressionVisitor = new ExpressionReferenceASTVisitor(this, unitFile, detailedType, createLiteralReference);
 		List<NameReference> resultList = new ArrayList<NameReference>();
 
 		// Visit the variable list defined in the node
@@ -397,7 +403,7 @@ public class NameReferenceCreator {
 		Block body = node.getBody();
 		LocalScope localScope = method.getBodyScope();
 		if (body != null) {
-			BlockReferenceASTVisitor localVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope);
+			BlockReferenceASTVisitor localVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope, createLiteralReference);
 			// Then visit the block
 			body.accept(localVisitor);
 			resultList.addAll(localVisitor.getResult());
@@ -417,7 +423,7 @@ public class NameReferenceCreator {
 		Block body = node.getBody();
 		LocalScope localScope = method.getBodyScope();
 		if (body != null) {
-			BlockReferenceASTVisitor localVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope);
+			BlockReferenceASTVisitor localVisitor = new BlockReferenceASTVisitor(this, unitName, root, localScope, createLiteralReference);
 			// Then visit the block
 			body.accept(localVisitor);
 			resultList.addAll(localVisitor.getResult());
@@ -538,7 +544,7 @@ public class NameReferenceCreator {
 		SourceCodeLocation start = SourceCodeLocation.getStartLocation(node, root, unitName);
 		NameScope scope = tableManager.getScopeOfLocation(start);
 		
-		ExpressionReferenceASTVisitor visitor = new ExpressionReferenceASTVisitor(this, unitName, root, scope);
+		ExpressionReferenceASTVisitor visitor = new ExpressionReferenceASTVisitor(this, unitName, root, scope, createLiteralReference);
 		node.accept(visitor);
 		return visitor.getResult();
 	}
@@ -557,7 +563,7 @@ public class NameReferenceCreator {
 		NameScope scope = tableManager.getScopeOfLocation(start);
 		if (scope.getScopeKind() != NameScopeKind.NSK_LOCAL) return new ArrayList<NameReference>(); 
 		
-		BlockReferenceASTVisitor visitor = new BlockReferenceASTVisitor(this, unitName, root, (LocalScope)scope);
+		BlockReferenceASTVisitor visitor = new BlockReferenceASTVisitor(this, unitName, root, (LocalScope)scope, createLiteralReference);
 		node.accept(visitor);
 		return visitor.getResult();
 	}

@@ -194,7 +194,7 @@ public class NameTableManager {
 	 * Return all definitions in the given scope (not include its subscope)
 	 */
 	public List<NameDefinition> getAllDefinitionsOfScope(NameScope scope) {
-		NameDefinitionVisitor visitor = new NameDefinitionVisitor(new NameDefinitionScopeFilter(scope));
+		NameDefinitionVisitor visitor = new NameDefinitionVisitor();
 		scope.accept(visitor);
 		return visitor.getResult();
 	}

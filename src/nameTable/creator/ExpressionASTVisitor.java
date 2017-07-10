@@ -105,6 +105,18 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		typeVisitor = new TypeASTVisitor(unitFile, scope);
 	}
 	
+	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope scope, boolean createReferenceForLiteral) {
+		this.creator = creator;
+		this.unitFile = unitFile;
+		this.scope = scope;
+		this.createReferenceForLiteral = createReferenceForLiteral;
+		typeVisitor = new TypeASTVisitor(unitFile, scope);
+	}
+	
+	public void setCreateReferenceForLiteral(boolean flag) {
+		this.createReferenceForLiteral = flag;
+	}
+	
 	public NameReference getResult() {
 		return lastReference;
 	}
@@ -113,19 +125,16 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		this.unitFile = unitFile;
 		this.scope = scope;
 		lastReference = null;
-		createReferenceForLiteral = false;
 		typeVisitor.reset(unitFile, scope);
 	}
 
 	public void reset(NameScope scope) {
 		lastReference = null;
 		this.scope = scope;
-		createReferenceForLiteral = false;
 	}
 
 	public void reset() {
 		lastReference = null;
-		createReferenceForLiteral = false;
 	}
 	
 	/**

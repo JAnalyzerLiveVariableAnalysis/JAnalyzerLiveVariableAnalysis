@@ -125,6 +125,7 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 	
 	protected TypeASTVisitor typeVisitor = null;
 	protected ExpressionReferenceASTVisitor expressionVisitor = null;
+	protected boolean createLiteralReference = false;
 	
 	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, LocalScope bodyScope) {
 		this.unitFile = unitFile;
@@ -144,6 +145,32 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 		resultList = new ArrayList<NameReference>();
 		typeVisitor = new TypeASTVisitor(unitFile, bodyScope);
 		expressionVisitor = new ExpressionReferenceASTVisitor(creator, unitFile, bodyScope);
+	}
+
+	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, LocalScope bodyScope, boolean createLiteralReference) {
+		this.unitFile = unitFile;
+		this.creator = creator;
+		this.bodyScope = bodyScope;
+		this.createLiteralReference = createLiteralReference;
+		
+		resultList = new ArrayList<NameReference>();
+		typeVisitor = new TypeASTVisitor(unitFile, bodyScope);
+		expressionVisitor = new ExpressionReferenceASTVisitor(creator, unitFile, bodyScope, createLiteralReference);
+	}
+
+	public BlockReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, LocalScope bodyScope, boolean createLiteralReference) {
+		this.unitFile = new CompilationUnitFile(unitName, root);
+		this.creator = creator;
+		this.bodyScope = bodyScope;
+		this.createLiteralReference = createLiteralReference;
+		
+		resultList = new ArrayList<NameReference>();
+		typeVisitor = new TypeASTVisitor(unitFile, bodyScope);
+		expressionVisitor = new ExpressionReferenceASTVisitor(creator, unitFile, bodyScope, createLiteralReference);
+	}
+	
+	public void setCreateLiteralReference(boolean flag) {
+		this.createLiteralReference = flag;
 	}
 
 	public void reset(LocalScope bodyScope) {

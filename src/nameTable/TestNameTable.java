@@ -66,7 +66,7 @@ public class TestNameTable {
 							rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\", rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\main\\org\\apache\\tools\\ant\\",
 		};
 		
-		String path = paths[4];
+		String path = paths[2];
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 
 		PrintWriter writer = new PrintWriter(System.out);
@@ -87,11 +87,11 @@ public class TestNameTable {
 		}
 		
 		try {
-			printAllNames(path, result);
+//			printAllNames(path, result);
 //			printAllDefinitions(path, result);
 //			printAllDefinitionsToDataTable(path, result);
 //			printAllNameScopesToDataTable(path, result);
-//			printAllReferencesToTable(path, result);
+			printAllReferencesToTable(path, result);
 //			printReferenceBindToDefinition(path, result);
 //			printNamesInCFG(path, result);
 		} catch (Exception exc) {
@@ -121,10 +121,17 @@ public class TestNameTable {
 		Debug.time("End creating.....");
 		Debug.flush();
 		
+		List<CompilationUnitScope> unitList = manager.getAllCompilationUnitScopes();
 		PrintWriter writer = new PrintWriter(new File(resultFile));
-		NameDefinitionPrinter definitionPrinter = new NameDefinitionPrinter(writer);
-		definitionPrinter.setPrintVariable(true);
-		manager.accept(definitionPrinter);
+	
+		for (CompilationUnitScope unit : unitList) {
+			List<NameDefinition> resultList = manager.getAllDefinitionsOfScope(unit);
+			for (NameDefinition definition : resultList) writer.println(definition.getFullQualifiedName() + " @ " + definition.getLocation());
+		}
+		
+//		NameDefinitionPrinter definitionPrinter = new NameDefinitionPrinter(writer);
+//		definitionPrinter.setPrintVariable(true);
+//		manager.accept(definitionPrinter);
 		
 //		writer.println();
 		
@@ -178,7 +185,7 @@ public class TestNameTable {
 		visitor.setFilter(filter);
 		manager.accept(visitor);
 		List<NameDefinition> typeList = visitor.getResult();
-		NameReferenceCreator referenceCreator = new NameReferenceCreator(manager);
+		NameReferenceCreator referenceCreator = new NameReferenceCreator(manager, true);
 
 		for (NameDefinition definition : typeList) {
 			DetailedTypeDefinition type = (DetailedTypeDefinition)definition;
@@ -189,7 +196,7 @@ public class TestNameTable {
 				reference.resolveBinding();
 				List<NameReference> leafReferenceList = reference.getReferencesAtLeaf();
 				for (NameReference leafReference : leafReferenceList) {
-					if (leafReference.isLiteralReference()) continue;
+//					if (leafReference.isLiteralReference()) continue;
 					
 					String name = leafReference.getName();
 					String location = "(" + leafReference.getLocation().toString() + ")";

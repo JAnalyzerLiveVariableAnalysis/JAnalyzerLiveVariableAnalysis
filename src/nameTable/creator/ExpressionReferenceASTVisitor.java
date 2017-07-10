@@ -47,6 +47,16 @@ public class ExpressionReferenceASTVisitor extends ExpressionASTVisitor {
 		this.referenceCreator = creator;
 	}
 
+	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, NameScope scope, boolean createLiteralReference) {
+		super(null, unitFile, scope, createLiteralReference);
+		this.referenceCreator = creator;
+	}
+
+	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, NameScope scope, boolean createLiteralReference) {
+		super(null, new CompilationUnitFile(unitName, root), scope, createLiteralReference);
+		this.referenceCreator = creator;
+	}
+
 	/**
 	 * ClassInstanceCreation: [ Expression . ] new [ < Type { , Type } > ] Type ( [ Expression { , Expression } ] ) [ AnonymousClassDeclaration ]
 	 */
