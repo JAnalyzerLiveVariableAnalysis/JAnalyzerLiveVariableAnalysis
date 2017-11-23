@@ -2,3 +2,5 @@
 /analyzer/
 /sourceCodeAST/
 /nameTable/
+/graph/
+/gui/
