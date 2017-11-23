@@ -105,6 +105,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.core.dom.WildcardType;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -117,7 +118,7 @@ import sourceCodeAST.SourceCodeLocation;
  * 		Refactor the class according to the design document
  */
 public class BlockReferenceASTVisitor extends ASTVisitor {
-	protected CompilationUnitFile unitFile = null;
+	protected CompilationUnitRecorder unitFile = null;
 	protected NameReferenceCreator creator = null;
 
 	protected LocalScope bodyScope = null;
@@ -127,7 +128,7 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 	protected ExpressionReferenceASTVisitor expressionVisitor = null;
 	protected boolean createLiteralReference = false;
 	
-	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, LocalScope bodyScope) {
+	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitRecorder unitFile, LocalScope bodyScope) {
 		this.unitFile = unitFile;
 		this.creator = creator;
 		this.bodyScope = bodyScope;
@@ -138,7 +139,7 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 	}
 
 	public BlockReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, LocalScope bodyScope) {
-		this.unitFile = new CompilationUnitFile(unitName, root);
+		this.unitFile = new CompilationUnitRecorder(unitName, root);
 		this.creator = creator;
 		this.bodyScope = bodyScope;
 		
@@ -147,7 +148,7 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 		expressionVisitor = new ExpressionReferenceASTVisitor(creator, unitFile, bodyScope);
 	}
 
-	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, LocalScope bodyScope, boolean createLiteralReference) {
+	public BlockReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitRecorder unitFile, LocalScope bodyScope, boolean createLiteralReference) {
 		this.unitFile = unitFile;
 		this.creator = creator;
 		this.bodyScope = bodyScope;
@@ -159,7 +160,7 @@ public class BlockReferenceASTVisitor extends ASTVisitor {
 	}
 
 	public BlockReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, LocalScope bodyScope, boolean createLiteralReference) {
-		this.unitFile = new CompilationUnitFile(unitName, root);
+		this.unitFile = new CompilationUnitRecorder(unitName, root);
 		this.creator = creator;
 		this.bodyScope = bodyScope;
 		this.createLiteralReference = createLiteralReference;

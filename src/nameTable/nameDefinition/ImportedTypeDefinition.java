@@ -6,6 +6,7 @@ import java.util.List;
 import nameTable.nameReference.MethodReference;
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceKind;
+import nameTable.nameReference.NameReferenceLabel;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
@@ -44,12 +45,21 @@ public class ImportedTypeDefinition extends TypeDefinition implements NameScope 
 		super(simpleName, fullQualifiedName, null, scope);
 	}
 
-	/* (non-Javadoc)
+	/** 
 	 * @see nameTable.TypeDefinition#isDetailedType()
 	 */
 	@Override
 	public boolean isImportedType() {
 		return true;
+	}
+
+	/** 
+	 * @see nameTable.TypeDefinition#isDetailedType()
+	 */
+	@Override
+	public boolean isPrimitive() {
+		if (NameReferenceLabel.isPrimitiveTypeName(simpleName)) return true;
+		return false;
 	}
 
 	@Override
@@ -183,6 +193,13 @@ public class ImportedTypeDefinition extends TypeDefinition implements NameScope 
 					if (type.match(reference)) return true;
 				}
 			}
+			if (reference.isTypeReference()) {
+				if (typeParameterList != null) {
+					for (TypeParameterDefinition typePara : typeParameterList) {
+						if (typePara.matchTypeReference((TypeReference)reference)) return true;
+					}
+				}
+			} // else if a reference with kind == NRK_TYPE, but it is not type reference, then it is a qualifier of a qualified name, a type parameter can not be a qualifier! 
 		}
 
 		// If we can not match the name in the fields, methods and types of the type, we resolve the  
@@ -232,6 +249,27 @@ public class ImportedTypeDefinition extends TypeDefinition implements NameScope 
 		return typeList;
 	}
 
+	/**
+	 * Reset field type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetFieldTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (fieldList != null) {
+			for (FieldDefinition field : fieldList) field.resetTypeBinding(typeParameterList);
+		}
+	}
+	
+	/**
+	 * Reset field type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetMethodReturnTypeAndParameterTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (methodList != null) {
+			for (MethodDefinition method : methodList) {
+				method.resetReturnTypeBinding(typeParameterList);
+				method.resetParameterTypeBinding(typeParameterList);
+			}
+		}
+	}
+	
 	/**
 	 * Get the list of super type, which include super class and super interfaces of the current type
 	 */

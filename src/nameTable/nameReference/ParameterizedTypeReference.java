@@ -114,6 +114,19 @@ public class ParameterizedTypeReference extends TypeReference {
 		return result;
 	}
 	
+	/**
+	 * Return sub-reference in a name reference
+	 */
+	@Override
+	public List<NameReference> getSubReferenceList() {
+		List<NameReference> result = new ArrayList<NameReference>();
+		result.add(primaryType);
+		if (argumentList != null) {
+			for (TypeReference argument : argumentList) result.add(argument);
+		}
+		return result;
+	}
+
 	public String toFullString() {
 		StringBuffer parameterString = new StringBuffer("");
 		if (argumentList != null && argumentList.size() > 0) {

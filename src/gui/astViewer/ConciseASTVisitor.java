@@ -81,7 +81,7 @@ public class ConciseASTVisitor extends SimpleASTVisitor {
 		if (!node.typeArguments().isEmpty()) {
 			for (Iterator<?> it = node.typeArguments().iterator(); it.hasNext(); ) {
 				Type t = (Type) it.next();
-				t.accept(this);
+				if (t != null) t.accept(this);
 			}
 		}
 		
@@ -89,7 +89,7 @@ public class ConciseASTVisitor extends SimpleASTVisitor {
 			// 因为实际参数种可能还有方法调用及实参传递，所以这里要每次都设置 isInMethodCallParameter 这个标志！
 			isInMethodCallParameter = true;
 			Expression e = (Expression) it.next();
-			e.accept(this);
+			if (e != null) e.accept(this);
 			isInMethodCallParameter = false;
 		}
 		
@@ -103,7 +103,7 @@ public class ConciseASTVisitor extends SimpleASTVisitor {
 		if (!node.typeParameters().isEmpty()) {
 			for (Iterator<?> it = node.typeParameters().iterator(); it.hasNext(); ) {
 				TypeParameter t = (TypeParameter) it.next();
-				t.accept(this);
+				if (t != null) t.accept(this);
 			}
 		}
 
@@ -112,13 +112,13 @@ public class ConciseASTVisitor extends SimpleASTVisitor {
 		if (!node.superInterfaceTypes().isEmpty()) {
 			for (Iterator<?> it = node.superInterfaceTypes().iterator(); it.hasNext(); ) {
 				Type t = (Type) it.next();
-				t.accept(this);
+				if (t != null) t.accept(this);
 			}
 		}
 
 		for (Iterator<?> it = node.bodyDeclarations().iterator(); it.hasNext(); ) {
 			BodyDeclaration d = (BodyDeclaration) it.next();
-			d.accept(this);
+			if (d != null) d.accept(this);
 		}
 
 		return false;
@@ -186,14 +186,14 @@ public class ConciseASTVisitor extends SimpleASTVisitor {
 		if (!node.typeParameters().isEmpty()) {
 			for (Iterator<?> it = node.typeParameters().iterator(); it.hasNext(); ) {
 				TypeParameter t = (TypeParameter) it.next();
-				t.accept(this);
+				if (t != null) t.accept(this);
 			}
 		}
 
 		isInMethodParameter = true;
 		for (Iterator<?> it = node.parameters().iterator(); it.hasNext(); ) {
 			SingleVariableDeclaration v = (SingleVariableDeclaration) it.next();
-			v.accept(this);
+			if (v != null) v.accept(this);
 		}
 		isInMethodParameter = false;
 		

@@ -1,5 +1,8 @@
 package nameTable.nameReference;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.PackageDefinition;
@@ -46,6 +49,16 @@ public class NamedTypeReference extends TypeReference {
 		this.qualifier = qualifier;
 	}
 
+	/**
+	 * Return sub-reference in a name reference
+	 */
+	@Override
+	public List<NameReference> getSubReferenceList() {
+		List<NameReference> result = new ArrayList<NameReference>();
+		result.add(qualifier);
+		return result;
+	}
+	
 	@Override
 	public boolean resolveBinding() {
 		if (definition != null) return true;

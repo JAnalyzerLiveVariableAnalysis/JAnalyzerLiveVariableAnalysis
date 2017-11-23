@@ -20,11 +20,14 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
  *
  */
 public class SourceCodeFile {
-	private File fileHandle = null;
+	private File fileHandle = null;					// Handle of the source code file
+	// The unit name of the source code file, which is related to the root path of the whole source code file set
+	private String unitName = null;					
+	
 	private String fileContent = null;
+
 	private CompilationUnit rootASTNode = null;
 	private String parsingErrorMessage = null;
-
 	private boolean hasParsingError = false;
 	
 	private int totalLines = 0; 		// The line number of the file;
@@ -49,6 +52,14 @@ public class SourceCodeFile {
 	 */
 	public String getFileFullName() {
 		return fileHandle.getPath();
+	}
+	
+	void setFileUnitName(String unitName) {
+		this.unitName = unitName;
+	}
+	
+	public String getFileUnitName() {
+		return unitName;
 	}
 	
 	public String getFileContent() {

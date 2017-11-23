@@ -185,6 +185,13 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 					if (type.match(reference)) return true;
 				}
 			}
+			if (reference.isTypeReference()) {
+				if (typeParameterList != null) {
+					for (TypeParameterDefinition typePara : typeParameterList) {
+						if (typePara.matchTypeReference((TypeReference)reference)) return true;
+					}
+				}
+			} // else if a reference with kind == NRK_TYPE, but it is not type reference, then it is a qualifier of a qualified name, a type parameter can not be a qualifier! 
 		}
 
 		// If we can not match the name in the fields, methods and types of the type, we resolve the  
@@ -208,7 +215,7 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		// it when we can not match the member of the detailed type with this reference.
 		NameScope referenceScope = reference.getScope();
 		if (referenceScope == this || referenceScope.isEnclosedInScope(this)) return getEnclosingScope().resolve(reference);
-		else return false;
+		return false;
 	}
 
 	/**
@@ -232,6 +239,28 @@ public class DetailedTypeDefinition extends TypeDefinition implements NameScope 
 		return typeList;
 	}
 
+	/**
+	 * Reset field type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetFieldTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (fieldList != null) {
+			for (FieldDefinition field : fieldList) field.resetTypeBinding(typeParameterList);
+		}
+	}
+	
+	/**
+	 * Reset field type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetMethodReturnTypeAndParameterTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (methodList != null) {
+			for (MethodDefinition method : methodList) {
+				method.resetReturnTypeBinding(typeParameterList);
+				method.resetParameterTypeBinding(typeParameterList);
+			}
+		}
+	}
+	
+	
 	/**
 	 * Get the list of super type, which include super class and super interfaces of the current type
 	 */

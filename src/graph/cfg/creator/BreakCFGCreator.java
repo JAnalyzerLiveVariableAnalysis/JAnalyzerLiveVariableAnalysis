@@ -15,15 +15,15 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class BreakCFGCreator implements StatementCFGCreator {
+public class BreakCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 		
 		// 1. Create an execution point for this break statement and add it to the current CFG
 		BreakStatement breakStatement = (BreakStatement)astNode;
-		ExecutionPoint breakNode = ExecutionPointFactory.createFlowControlNode(breakStatement);
+		ExecutionPoint breakNode = currentCFG.getExecutionPointFactory().createFlowControlNode(breakStatement);
 		currentCFG.addNode(breakNode);
 		
 		// 2. For the possible precede node in the list precedeNodeList, if its reason type is PPR_SEQUENCE, then add edge <precedeNode, 

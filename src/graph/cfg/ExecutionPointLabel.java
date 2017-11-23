@@ -25,6 +25,10 @@ public class ExecutionPointLabel {
 	public static final String DO_START = "DoStart";
 	public static final String TRY_BLOCK_START = "TryBlockStart";
 	public static final String SYNCHRONIZE_START = "Synchronize";
+	public static final String CATCH_CLAUSE_START = "CatchClauseStart";
+
+	public static final String CATCH_CLAUSE = "CatchClause";
+	public static final String FINALLY_BLOCK = "FinallyBlock";
 	
 	/**
 	 * The label of the start node of the labeled statement is "Label:" + the label in the statement
@@ -43,6 +47,7 @@ public class ExecutionPointLabel {
 	public static final String TRY_END = "TryEnd";
 	public static final String SYNCHRONIZE_END = "SynchronizeEnd";
 	public static final String LABEL_END = "LabelEnd";
+	public static final String CATCH_CLAUSE_END = "CatchClauseEnd";
 	
 	/**
 	 * The label of the break node is "break " + the label in the statement

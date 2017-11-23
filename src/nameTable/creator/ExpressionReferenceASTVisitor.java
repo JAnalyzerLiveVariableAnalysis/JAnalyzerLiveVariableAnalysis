@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -37,23 +38,23 @@ import sourceCodeAST.SourceCodeLocation;
 public class ExpressionReferenceASTVisitor extends ExpressionASTVisitor {
 	protected NameReferenceCreator referenceCreator = null;
 	
-	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, NameScope scope) {
+	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitRecorder unitFile, NameScope scope) {
 		super(null, unitFile, scope);
 		this.referenceCreator = creator;
 	}
 
 	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, NameScope scope) {
-		super(null, new CompilationUnitFile(unitName, root), scope);
+		super(null, new CompilationUnitRecorder(unitName, root), scope);
 		this.referenceCreator = creator;
 	}
 
-	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitFile unitFile, NameScope scope, boolean createLiteralReference) {
+	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, CompilationUnitRecorder unitFile, NameScope scope, boolean createLiteralReference) {
 		super(null, unitFile, scope, createLiteralReference);
 		this.referenceCreator = creator;
 	}
 
 	public ExpressionReferenceASTVisitor(NameReferenceCreator creator, String unitName, CompilationUnit root, NameScope scope, boolean createLiteralReference) {
-		super(null, new CompilationUnitFile(unitName, root), scope, createLiteralReference);
+		super(null, new CompilationUnitRecorder(unitName, root), scope, createLiteralReference);
 		this.referenceCreator = creator;
 	}
 

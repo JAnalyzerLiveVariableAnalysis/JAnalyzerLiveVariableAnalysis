@@ -95,7 +95,6 @@ public class NRGQualifiedName extends NameReferenceGroup {
 				FieldDefinition fieldDef = (FieldDefinition)nameDef;
 				bindTo(fieldDef.getTypeDefinition());
 			} else {
-				System.out.println("In NRGQualifiedName 98: firstRef " + firstRef.getName() + ", typeDef " + typeDef.getFullQualifiedName());
 				throw new AssertionError("Unexpected name definition kind[" + nameDefKind + "] of [" + nameDef.toString() + 
 						" for [" + fieldRef.toString() + "] in qualified name [" + this.toString() + "]!");
 			}

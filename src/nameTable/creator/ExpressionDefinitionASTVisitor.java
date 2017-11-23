@@ -42,6 +42,7 @@ import nameTable.nameReference.NameReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
+import sourceCodeAST.CompilationUnitRecorder;
 
 /**
  * The expression visitor for creating all name definitions, while ignoring name references as far as possible
@@ -54,7 +55,7 @@ import nameTable.nameScope.NameScopeKind;
  */
 public class ExpressionDefinitionASTVisitor extends ExpressionASTVisitor {
 
-	public ExpressionDefinitionASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope scope) {
+	public ExpressionDefinitionASTVisitor(NameTableCreator creator, CompilationUnitRecorder unitFile, NameScope scope) {
 		super(creator, unitFile, scope);
 	}
 

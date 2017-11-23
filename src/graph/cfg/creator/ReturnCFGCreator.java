@@ -15,15 +15,15 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class ReturnCFGCreator implements StatementCFGCreator {
+public class ReturnCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 
 		// 1. Create an execution point for this return statement and add it to the current CFG
 		ReturnStatement returnStatement = (ReturnStatement)astNode;
-		ExecutionPoint returnNode = ExecutionPointFactory.createFlowControlNode(returnStatement);
+		ExecutionPoint returnNode = currentCFG.getExecutionPointFactory().createFlowControlNode(returnStatement);
 		currentCFG.addNode(returnNode);
 		
 		// 2. For the possible precede node in the list precedeNodeList, if its reason type is PPR_SEQUENCE, then add edge <precedeNode, 

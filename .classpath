@@ -2,34 +2,20 @@
 <classpath>
 	<classpathentry excluding="studyAST/TestASTTwo.java" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.resources_3.11.0.v20160503-1608.jar"/>
 	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.runtime_3.12.0.v20160606-1342.jar"/>
 	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.jdt_3.12.1.v20160907-1200.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.jface_3.12.0.v20160518-1929.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.swt.win32.win32.x86_64_3.105.1.v20160907-0248.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.text_3.6.0.v20160503-1849.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.equinox.common_3.8.0.v20160509-1230.jar" sourcepath="D:/ZxcExe/eclipse/plugins/org.eclipse.equinox.common.source_3.5.1.R35x_v20090807-1100.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/D:/ZxcExe/eclipse/plugins/org.eclipse.platform.doc.isv_3.5.1.r351_v20090831.jar!/reference/api"/>
-		</attributes>
-		<accessrules>
-			<accessrule kind="discouraged" pattern="org/eclipse/core/internal/boot/*"/>
-			<accessrule kind="discouraged" pattern="org/eclipse/core/internal/runtime/*"/>
-			<accessrule kind="accessible" pattern="org/eclipse/core/runtime/*"/>
-			<accessrule ignoreifbetter="true" kind="nonaccessible" pattern="**/*"/>
-		</accessrules>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.jobs_3.8.0.v20160509-0411.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.contenttype_3.5.100.v20160418-1621.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.osgi_3.11.1.v20160708-1632.jar"/>
 	<classpathentry exported="true" kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.runtime.compatibility.registry_3.5.300.v20140128-0851/runtime_registry_compatibility.jar"/>
 	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.equinox.registry_3.6.100.v20160223-2218.jar"/>
 	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.equinox.preferences_3.6.1.v20160815-1406.jar"/>
-	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.commands_3.8.0.v20160316-1921.jar"/>
 	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.jdt.core_3.12.1.v20160829-0950.jar" sourcepath="C:/Software/eclipse/plugins/org.eclipse.jdt.core.source_3.12.1.v20160829-0950.jar"/>
-	<classpathentry exported="true" kind="lib" path="C:/ZxcWork/ProgramAnalysis/lib/jcommon-1.0.13.jar"/>
-	<classpathentry exported="true" kind="lib" path="C:/ZxcWork/ProgramAnalysis/lib/jfreechart-1.0.10.jar"/>
-	<classpathentry exported="true" kind="lib" path="C:/ZxcWork/ProgramAnalysis/lib/dom4j-1.6.1.jar"/>
-	<classpathentry exported="true" kind="lib" path="C:/ZxcWork/ProgramAnalysis/lib/commons-math3-3.6.1.jar" sourcepath="C:/ZxcWork/ProgramAnalysis/lib/commons-math3-3.6.1-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.jdt.annotation_2.1.0.v20160418-1457.jar"/>
+	<classpathentry kind="lib" path="C:/ZxcWork/ProgramAnalysis/lib/commons-math3-3.6.1.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.resources_3.11.0.v20160503-1608.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.jobs_3.8.0.v20160509-0411.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.core.contenttype_3.5.100.v20160418-1621.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.osgi_3.11.1.v20160708-1632.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.text_3.6.0.v20160503-1849.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.equinox.common_3.8.0.v20160509-1230.jar"/>
+	<classpathentry kind="lib" path="C:/Software/eclipse/plugins/org.eclipse.jgit_4.5.0.201609210915-r.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,6 +1,7 @@
 package graph.cfg;
 
 import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
 
 import sourceCodeAST.SourceCodeLocation;
 
@@ -17,15 +18,17 @@ import sourceCodeAST.SourceCodeLocation;
  *
  */
 public class ExecutionPoint implements CFGNode {
-	private String id = null;
-	private String label = null;
-	private String description = null;
-	private ExecutionPointType type = ExecutionPointType.NORMAL;
-	private ASTNode astNode = null;					// The AST node corresponding to the execution point
+	protected String id = null;
+	protected String label = null;
+	protected String description = null;
+	protected ExecutionPointType type = ExecutionPointType.NORMAL;
+	protected ASTNode astNode = null;					// The AST node corresponding to the execution point
 	
-	private SourceCodeLocation startLocation = null;	// the start position in the compilation unit of the execution point
-	private SourceCodeLocation endLocation = null;		// the end position in the compilatin unit of the execution point
+	protected SourceCodeLocation startLocation = null;	// the start position in the compilation unit of the execution point
+	protected SourceCodeLocation endLocation = null;		// the end position in the compilatin unit of the execution point
 
+	protected IFlowInfoRecorder recorder = null;
+	
 	public ExecutionPoint() {
 		
 	}
@@ -63,7 +66,12 @@ public class ExecutionPoint implements CFGNode {
 	}
 
 	public ASTNode getAstNode() {
-		return astNode;
+		if (label.equals(ExecutionPointLabel.ENHANCED_FOR_PREDICATE)) {
+			// Note that we set the entire enhanced for statement to such kind of execution point in ExecutionPointFactory!
+			EnhancedForStatement statement = (EnhancedForStatement)astNode;
+			if (statement != null) return statement.getExpression();
+			else return null;
+		} else return astNode;
 	}
 
 	public void setId(String id) {
@@ -84,6 +92,14 @@ public class ExecutionPoint implements CFGNode {
 
 	public void setAstNode(ASTNode astNode) {
 		this.astNode = astNode;
+	}
+	
+	public void setFlowInfoRecorder(IFlowInfoRecorder recorder) {
+		this.recorder = recorder;
+	}
+	
+	public IFlowInfoRecorder getFlowInfoRecorder() {
+		return recorder;
 	}
 	
 	@Override
@@ -137,6 +153,14 @@ public class ExecutionPoint implements CFGNode {
 	 */
 	public boolean isPredicate() {
 		return type.isPredicate();
+	}
+
+	/**
+	 * If the execution point represents a predicate in an enhanced for statement
+	 */
+	public boolean isEnhancedForPredicate() {
+		if (type.isPredicate() && label.equals(ExecutionPointLabel.ENHANCED_FOR_PREDICATE)) return true;
+		else return false;
 	}
 	
 	/**

@@ -15,15 +15,15 @@ import org.eclipse.jdt.core.dom.ThrowStatement;
  * @version 1.0
  *
  */
-public class ThrowCFGCreator implements StatementCFGCreator {
+public class ThrowCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 
 		// 1. Create an execution point for this throw statement and add it to the current CFG
 		ThrowStatement throwStatement = (ThrowStatement)astNode;
-		ExecutionPoint throwNode = ExecutionPointFactory.createFlowControlNode(throwStatement);
+		ExecutionPoint throwNode = currentCFG.getExecutionPointFactory().createFlowControlNode(throwStatement);
 		currentCFG.addNode(throwNode);
 		
 		// 2. For the possible precede node in the list precedeNodeList, if its reason type is PPR_SEQUENCE, then add edge <precedeNode, 

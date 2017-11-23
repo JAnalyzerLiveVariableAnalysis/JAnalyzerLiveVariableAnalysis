@@ -13,6 +13,7 @@ import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.LocalScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
+import nameTable.nameScope.SystemScope;
 import nameTable.visitor.NameTableVisitor;
 import sourceCodeAST.SourceCodeLocation;
 
@@ -90,10 +91,11 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	/**
 	 * Return the package definition object which this detailed type belongs to 
 	 */
-	public DetailedTypeDefinition getEnclosingType() {
+	public TypeDefinition getEnclosingType() {
 		NameScope currentScope = scope;
-		while (currentScope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE) currentScope = currentScope.getEnclosingScope();
-		return (DetailedTypeDefinition)currentScope;
+		while (currentScope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE && currentScope.getScopeKind() != NameScopeKind.NSK_IMPORTED_TYPE) 
+			currentScope = currentScope.getEnclosingScope();
+		return (TypeDefinition)currentScope;
 	}
 	
 
@@ -131,11 +133,18 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	public boolean resolve(NameReference reference) {
 //		if (reference.getName().equals("ORB")) System.out.println("Resolve ORB in method " + this.getScopeName());
 
-		// In a method definitions, we can only resolve the parameters defined in the method or the method itself.
+		// In a method definitions, we can only resolve the parameters and the type (with type
+		// parameter of the method) for local variables and parameters defined in the method or the method itself.
 		if (reference.getReferenceKind() == NameReferenceKind.NRK_VARIABLE) {
 			if (parameterList != null) {
 				for (VariableDefinition var : parameterList) {
 					if (var.match(reference)) return true;
+				}
+			}
+		} else if (reference.isTypeReference()) {
+			if (typeParameterList != null) {
+				for (TypeParameterDefinition typePara : typeParameterList) {
+					if (typePara.matchTypeReference((TypeReference)reference)) return true;
 				}
 			}
 		}
@@ -193,6 +202,31 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	}
 
 	/**
+	 * Reset return type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetReturnTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (returnType != null) {
+			for (TypeParameterDefinition typeParameter : typeParameterList) {
+				if (returnType.getName().equals(typeParameter.getSimpleName())) {
+					returnType.resetBinding();
+					return;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Reset parameter type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetParameterTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (parameterList != null) {
+			for (VariableDefinition variableDefinition : parameterList) {
+				variableDefinition.resetTypeBinding(typeParameterList);
+			}
+		}
+	}
+	
+	/**
 	 * @return the bodyScope
 	 */
 	public LocalScope getBodyScope() {
@@ -244,6 +278,8 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 	 * resolve a method reference.
 	 * 
 	 * @since 2013-12-28
+	 * @update 2017-08-15 
+	 *   Deal with type parameter and its argument when match method
 	 */
 	public boolean matchMethod(MethodReference reference) {
 		String referenceName = reference.getName();
@@ -262,17 +298,41 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		if (args == null) return false;
 		if (args.size() != parameterList.size()) return false;
 		
+		// Instantiate type parameter in method definition
+		if (typeParameterList != null) {
+			List<TypeReference> typeArgumentList = reference.getTypeArgumentList();
+			if (typeArgumentList == null) {
+				// All type parameters instantiate to Object
+				SystemScope rootScope = getRootScope();
+				NameDefinition rootObject = rootScope.getRootObjectDefinition();
+				TypeReference objectReference = new TypeReference(SystemScope.ROOT_OBJECT_NAME, null, rootScope);
+				objectReference.bindTo(rootObject);
+				for (TypeParameterDefinition typePara : typeParameterList) typePara.setCurrentValue(objectReference);
+			} else {
+				if (typeParameterList.size() != typeArgumentList.size()) return false;
+				for (int index = 0; index < typeParameterList.size(); index++) {
+					TypeParameterDefinition typePara = typeParameterList.get(index);
+					typePara.setCurrentValue(typeArgumentList.get(index));
+				}
+			}
+			// Reset return type and parameter type reference for new resolving!
+			resetReturnTypeBinding(typeParameterList);
+			resetParameterTypeBinding(typeParameterList);
+		}
+
 		// Test if the type of the argument is the sub-type of the type of the corresponding parameter
 		for (int index = 0; index < args.size(); index++) {
 			NameReference argument = args.get(index);
 			VariableDefinition parameter = parameterList.get(index);
 			TypeDefinition argumentType = argument.getResultTypeDefinition();
 			TypeDefinition paraType = parameter.getTypeDefinition();
-			
+
 			if (argumentType != null && paraType != null) {
 				// The type of the argument should be the sub-type of the type of the parameter, otherwise the (actual) argument can not 
 				// be assigned to the (formal) parameter!
-				if (!argumentType.isSubtypeOf(paraType)) return false;
+				if (!argumentType.isSubtypeOf(paraType)) {
+					return false;
+				}
 			} // If we can not resolve the argument type or the parameter type, then we ignore the type compatibility between the argument  and the parameter.
 		}
 		return true;
@@ -300,6 +360,7 @@ public class MethodDefinition extends NameDefinition implements NameScope {
 		if (otherParas == null && parameterList == null) return true;
 		if (otherParas == null && parameterList != null) return false;
 		if (otherParas != null && parameterList == null) return false;
+		assert(otherParas != null && parameterList != null);
 		if (otherParas.size() != parameterList.size()) return false;
 		
 		for (int index = 0; index < otherParas.size(); index++) {

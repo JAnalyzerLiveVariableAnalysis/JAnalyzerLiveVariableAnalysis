@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 import sourceCodeAST.SourceCodeLocationASTVisitor;
 
@@ -62,8 +63,6 @@ public class CFGCreator {
 	public List<ControlFlowGraph> create() {
 		if (astRoot == null || sourceFileName == null) return null;
 		
-		// Set ExecutionPointFactory's sourceFileName and root node
-		ExecutionPointFactory.setCompilationUnit(sourceFileName, astRoot);
 		List<ControlFlowGraph> resultCFGList = new ArrayList<ControlFlowGraph>();
 		
 		List<AbstractTypeDeclaration> typeList = astRoot.types();
@@ -91,11 +90,13 @@ public class CFGCreator {
 				
 				// Create a ControFlowGraph object
 				ControlFlowGraph currentCFG = new ControlFlowGraph(id, label, description);
-				currentCFG.setSourceFile(sourceFileName, astRoot);
+				currentCFG.setCompilationUnitRecorder(sourceFileName, astRoot);
+				ExecutionPointFactory factory = new ExecutionPointFactory(currentCFG.getCompilationUnitRecorder());
+				currentCFG.setExecutionPointFactory(factory);
 				currentCFG.setMethod(className, methodName, methodDeclaration);
 				
 				// Create the start node for the CFG of the method
-				ExecutionPoint startNode = ExecutionPointFactory.createStart(methodDeclaration);
+				ExecutionPoint startNode = factory.createStart(methodDeclaration);
 				currentCFG.setAndAddStartNode(startNode);
 				
 				// Create a precede node list precedeNodeList, which only contains the node startNode
@@ -104,10 +105,10 @@ public class CFGCreator {
 
 				// Create CFG for the body of the method and get new precedeNodeList
 				StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(methodBody);
-				precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList);
+				precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList, null);
 				
 				// Create end and abnormal end node for the entire method
-				ExecutionPoint endNode = ExecutionPointFactory.createEnd(methodDeclaration);
+				ExecutionPoint endNode = factory.createEnd(methodDeclaration);
 				currentCFG.setAndAddEndNode(endNode);
 				
 				ExecutionPoint abnormalEndNode = null;
@@ -120,7 +121,7 @@ public class CFGCreator {
 						currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), endNode, edgeLabel));
 					} else if (reason == PossiblePrecedeReasonType.PPR_THROW) {
 						if (abnormalEndNode == null) {
-							abnormalEndNode = ExecutionPointFactory.createAbnormalEnd(methodDeclaration);
+							abnormalEndNode = factory.createAbnormalEnd(methodDeclaration);
 							currentCFG.setAndAddAbnormalEndNode(abnormalEndNode);
 						}
 						currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), abnormalEndNode, edgeLabel));
@@ -140,9 +141,6 @@ public class CFGCreator {
 	 * create CFG for a given method! Note that the caller should give the name (i.e. the parameter className) of the class defined the method!
 	 */
 	public ControlFlowGraph create(MethodDeclaration methodDeclaration, String className) {
-		// Set ExecutionPointFactory's sourceFileName and root node
-		ExecutionPointFactory.setCompilationUnit(sourceFileName, astRoot);
-
 		String methodName = methodDeclaration.getName().getIdentifier();
 		String id = className + "." + methodName + "@" + SourceCodeLocation.getStartLocation(methodDeclaration, astRoot, sourceFileName);
 		String label = className + "." + methodName;
@@ -153,11 +151,13 @@ public class CFGCreator {
 		
 		// Create a ControFlowGraph object
 		ControlFlowGraph currentCFG = new ControlFlowGraph(id, label, description);
-		currentCFG.setSourceFile(sourceFileName, astRoot);
+		currentCFG.setCompilationUnitRecorder(sourceFileName, astRoot);
+		ExecutionPointFactory factory = new ExecutionPointFactory(currentCFG.getCompilationUnitRecorder());
+		currentCFG.setExecutionPointFactory(factory);
 		currentCFG.setMethod(className, methodName, methodDeclaration);
 		
 		// Create the start node for the CFG of the method
-		ExecutionPoint startNode = ExecutionPointFactory.createStart(methodDeclaration);
+		ExecutionPoint startNode = factory.createStart(methodDeclaration);
 		currentCFG.setAndAddStartNode(startNode);
 		
 		// Create a precede node list precedeNodeList, which only contains the node startNode
@@ -166,10 +166,10 @@ public class CFGCreator {
 
 		// Create CFG for the body of the method and get new precedeNodeList
 		StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(methodBody);
-		precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList);
+		precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList, null);
 		
 		// Create end and abnormal end node for the entire method
-		ExecutionPoint endNode = ExecutionPointFactory.createEnd(methodDeclaration);
+		ExecutionPoint endNode = factory.createEnd(methodDeclaration);
 		currentCFG.setAndAddEndNode(endNode);
 		
 		ExecutionPoint abnormalEndNode = null;
@@ -182,7 +182,7 @@ public class CFGCreator {
 				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), endNode, edgeLabel));
 			} else if (reason == PossiblePrecedeReasonType.PPR_THROW) {
 				if (abnormalEndNode == null) {
-					abnormalEndNode = ExecutionPointFactory.createAbnormalEnd(methodDeclaration);
+					abnormalEndNode = factory.createAbnormalEnd(methodDeclaration);
 					currentCFG.setAndAddAbnormalEndNode(abnormalEndNode);
 				}
 				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), abnormalEndNode, edgeLabel));
@@ -244,9 +244,15 @@ public class CFGCreator {
 		CompilationUnit astRoot = nameTable.getSouceCodeFileSet().findSourceCodeFileASTRootByFileUnitName(sourceFileName);
 		if (astRoot == null) return null;
 		
-		// Set ExecutionPointFactory's sourceFileName and root node
-		ExecutionPointFactory.setCompilationUnit(sourceFileName, astRoot);
+		CompilationUnitRecorder unitRecorder = new CompilationUnitRecorder(sourceFileName, astRoot);
+		
+		return create(nameTable, unitRecorder, method);
+	}
 
+	/**
+	 * Create control flow graph for a method by given an object of MethodDefinition and its NameTableManager
+	 */
+	public static ControlFlowGraph create(NameTableManager nameTable, CompilationUnitRecorder unitRecorder, MethodDefinition method) {
 		NameTableASTBridge bridge = new NameTableASTBridge(nameTable);
 		MethodDeclaration methodDeclaration = bridge.findASTNodeForMethodDefinition(method);
 		if (methodDeclaration == null) return null;
@@ -262,11 +268,13 @@ public class CFGCreator {
 		
 		// Create a ControFlowGraph object
 		ControlFlowGraph currentCFG = new ControlFlowGraph(id, label, description);
-		currentCFG.setSourceFile(sourceFileName, astRoot);
+		currentCFG.setCompilationUnitRecorder(unitRecorder);
+		ExecutionPointFactory factory = new ExecutionPointFactory(currentCFG.getCompilationUnitRecorder());
+		currentCFG.setExecutionPointFactory(factory);
 		currentCFG.setMethod(type.getFullQualifiedName(), method.getSimpleName(), methodDeclaration);
 		
 		// Create the start node for the CFG of the method
-		ExecutionPoint startNode = ExecutionPointFactory.createStart(methodDeclaration);
+		ExecutionPoint startNode = factory.createStart(methodDeclaration);
 		currentCFG.setAndAddStartNode(startNode);
 		
 		// Create a precede node list precedeNodeList, which only contains the node startNode
@@ -275,27 +283,30 @@ public class CFGCreator {
 
 		// Create CFG for the body of the method and get new precedeNodeList
 		StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(methodBody);
-		precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList);
+		precedeNodeList = creator.create(currentCFG, methodBody, precedeNodeList, null);
 		
 		// Create end and abnormal end node for the entire method
-		ExecutionPoint endNode = ExecutionPointFactory.createEnd(methodDeclaration);
-		currentCFG.setAndAddEndNode(endNode);
-		
 		ExecutionPoint abnormalEndNode = null;
+		ExecutionPoint endNode = null;
 		// Traverse precedeNodeList, for each precedeNode in the list, if it is a PPR_RETURN or PPR_SEQUENCE, add edge <precedeNode, endNode>,
 		// if it is a PPR_THROW, create abnormalEndNode, and add edge <precedeNode, abnormalEndNode>
 		for (PossiblePrecedeNode precedeNode : precedeNodeList) {
 			PossiblePrecedeReasonType reason = precedeNode.getReason();
 			String edgeLabel = precedeNode.getLabel();
 			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE || reason == PossiblePrecedeReasonType.PPR_RETURN) {
+				if (endNode == null) {
+					endNode = factory.createEnd(methodDeclaration);
+					currentCFG.setAndAddEndNode(endNode);
+				}
 				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), endNode, edgeLabel));
 			} else if (reason == PossiblePrecedeReasonType.PPR_THROW) {
 				if (abnormalEndNode == null) {
-					abnormalEndNode = ExecutionPointFactory.createAbnormalEnd(methodDeclaration);
+					abnormalEndNode = factory.createAbnormalEnd(methodDeclaration);
 					currentCFG.setAndAddAbnormalEndNode(abnormalEndNode);
 				}
 				currentCFG.addEdge(new CFGEdge(precedeNode.getNode(), abnormalEndNode, edgeLabel));
 			} else {
+				System.out.println("Node " + precedeNode.getNode().getId() + ", resaon = " + reason);
 				throw new AssertionError("After create CFG for the entire method, there are unexpected precede nodes in the precedeNodeList");
 			} 
 		}

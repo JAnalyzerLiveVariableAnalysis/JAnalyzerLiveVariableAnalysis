@@ -121,7 +121,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(AnonymousClassDeclaration node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -156,14 +156,14 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(AssertStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(Assignment node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -199,14 +199,14 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(CastExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(CatchClause node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -220,7 +220,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ClassInstanceCreation node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -234,14 +234,14 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ConditionalExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ConstructorInvocation node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -255,7 +255,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(DoStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -269,7 +269,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(EnhancedForStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -290,7 +290,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ExpressionStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -311,14 +311,14 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ForStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(IfStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -332,21 +332,21 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(InfixExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(InstanceofExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(Initializer node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -361,7 +361,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(LabeledStatement node) {
-		return false;
+		return true;
 	}
 
 
@@ -475,7 +475,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ParenthesizedExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -517,7 +517,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ReturnStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -546,7 +546,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(SingleVariableDeclaration node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -560,7 +560,7 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(SuperConstructorInvocation node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -574,28 +574,28 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(SuperMethodInvocation node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(SwitchCase node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Only need to visit its children
 	 */
 	public boolean visit(SwitchStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Only need to visit its children
 	 */
 	public boolean visit(SynchronizedStatement node) {
-		return false;
+		return true;
 	}
 
 
@@ -625,14 +625,14 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(ThrowStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(TryStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
@@ -669,28 +669,28 @@ public class TypeDeclarationASTVisitor extends ASTVisitor {
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(VariableDeclarationExpression node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(VariableDeclarationStatement node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(VariableDeclarationFragment node) {
-		return false;
+		return true;
 	}
 
 	/**
 	 * Ignore this kind of AST node so far
 	 */
 	public boolean visit(WhileStatement node) {
-		return false;
+		return true;
 	}
 
 	/**

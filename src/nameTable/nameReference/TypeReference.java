@@ -96,6 +96,14 @@ public class TypeReference extends NameReference {
 	public boolean isTypeReference() {
 		return true;
 	}
+	
+	/**
+	 * Test whether the reference refers to a primitive type!
+	 */
+	public boolean isReferToPrimitiveType() {
+		if (NameReferenceLabel.isPrimitiveTypeName(name) && !isArrayType()) return true;
+		else return false;
+	}
 
 	@Override
 	public boolean resolveBinding() {

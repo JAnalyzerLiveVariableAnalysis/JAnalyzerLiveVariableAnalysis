@@ -42,6 +42,18 @@ public class UnionTypeReference extends TypeReference {
 		return typeList;
 	}
 	
+	/**
+	 * Return sub-reference in a name reference
+	 */
+	@Override
+	public List<NameReference> getSubReferenceList() {
+		List<NameReference> result = new ArrayList<NameReference>();
+		if (typeList != null) {
+			for (TypeReference type : typeList) result.add(type);
+		}
+		return result;
+	}
+
 	@Override
 	public boolean resolveBinding() {
 		if (definition != null) return true;

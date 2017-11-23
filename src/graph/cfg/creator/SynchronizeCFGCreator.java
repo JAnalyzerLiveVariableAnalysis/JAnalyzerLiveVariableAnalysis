@@ -18,15 +18,17 @@ import org.eclipse.jdt.core.dom.SynchronizedStatement;
  * @version 1.0
  *
  */
-public class SynchronizeCFGCreator implements StatementCFGCreator {
+public class SynchronizeCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
+
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
 
 		SynchronizedStatement synStatement = (SynchronizedStatement)astNode;
 		// 1 Create a virtual start node for the statement, 
-		ExecutionPoint startNode = ExecutionPointFactory.createVirtualStart(synStatement);
+		ExecutionPoint startNode = factory.createVirtualStart(synStatement);
 		currentCFG.addNode(startNode);
 		
 		// 2. For the possible precede node in the list precedeNodeList, if its reason type is PPR_SEQUENCE, then add edge <precedeNode, 
@@ -41,11 +43,10 @@ public class SynchronizeCFGCreator implements StatementCFGCreator {
 		// 4 Create CFG for the body of the synchronize statement, and get new precede node list synBodyPrecedeNodeList
 		Block synBody = synStatement.getBody();
 		StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(synBody);
-		List<PossiblePrecedeNode> synBodyPrecedeNodeList = creator.create(currentCFG, synBody, synPrecedeNodeList);
+		List<PossiblePrecedeNode> synBodyPrecedeNodeList = creator.create(currentCFG, synBody, synPrecedeNodeList, null);
 		
 		// 5 Create a virtual end node for the statement, 
-		ExecutionPoint endNode = ExecutionPointFactory.createVirtualEnd(synStatement);
-		currentCFG.addNode(endNode);
+		ExecutionPoint endNode = null;
 		
 		// 6 Traverse synBodyPrecedeNodeList, for each node synBodyPrecedeNode in the list, if it is a PPR_SEQUENCE node, add edge
 		//   <synBodyPrecedeNode, endNode> to currentCFG, otherwise add it to precedeNodeList in the above 2
@@ -53,12 +54,16 @@ public class SynchronizeCFGCreator implements StatementCFGCreator {
 			PossiblePrecedeReasonType reason = synBodyPrecedeNode.getReason();
 			String label = synBodyPrecedeNode.getLabel();
 			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
+				if (endNode == null) {
+					endNode = factory.createVirtualEnd(synStatement);
+					currentCFG.addNode(endNode);
+				}
 				currentCFG.addEdge(new CFGEdge(synBodyPrecedeNode.getNode(), endNode, label));
 			} else precedeNodeList.add(synBodyPrecedeNode);
 		}
 
 		// 7 Add endNode to the precedeNodeList
-		precedeNodeList.add(new PossiblePrecedeNode(endNode, PossiblePrecedeReasonType.PPR_SEQUENCE, null));
+		if (endNode != null) precedeNodeList.add(new PossiblePrecedeNode(endNode, PossiblePrecedeReasonType.PPR_SEQUENCE, null));
 		return precedeNodeList;
 	}
 

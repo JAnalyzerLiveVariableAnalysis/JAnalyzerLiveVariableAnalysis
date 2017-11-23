@@ -56,7 +56,7 @@ public abstract class NameReferenceGroup extends NameReference {
 	public static final String OPERATOR_RIGHT_SHIFT_UNSIGNED_ASSIGN = ">>>=";
 
 	protected String operator = null;			// The string of the operator, its value is included in the above final strings
-	protected List<NameReference> subreferences = null;		// The references in the group
+	protected List<NameReference> subreferences = null;		// The references in the group. When all sub references are literal, it may be null.
 	
 	public NameReferenceGroup(String name, SourceCodeLocation location, NameScope scope) {
 		super(name, location, scope);
@@ -71,6 +71,7 @@ public abstract class NameReferenceGroup extends NameReference {
 	/**
 	 * Get the list of all references in the group
 	 */
+	@Override
 	public List<NameReference> getSubReferenceList() {
 		return subreferences;
 	}
@@ -80,8 +81,8 @@ public abstract class NameReferenceGroup extends NameReference {
 	 */
 	public void addSubReference(NameReference reference) {
 		if (reference == null) return;
-		if (subreferences == null) subreferences = new ArrayList<NameReference>();
-		subreferences.add(reference);
+		if (this.subreferences == null) this.subreferences = new ArrayList<NameReference>();
+		this.subreferences.add(reference);
 	}
 
 	/**

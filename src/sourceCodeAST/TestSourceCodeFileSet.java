@@ -35,7 +35,7 @@ public class TestSourceCodeFileSet {
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 
 		PrintWriter writer = new PrintWriter(System.out);
-		PrintWriter output = null;
+		PrintWriter output = new PrintWriter(System.out);
 		
 		try {
 			writer = new PrintWriter(new FileOutputStream(new File(result)));

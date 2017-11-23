@@ -17,7 +17,6 @@ import nameTable.filter.NameDefinitionNameFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
-import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameReference.TypeReference;
 import nameTable.visitor.NameDefinitionFinder;

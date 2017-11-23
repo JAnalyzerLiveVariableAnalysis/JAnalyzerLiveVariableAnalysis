@@ -2,7 +2,10 @@ package nameTable.nameDefinition;
 
 import nameTable.nameReference.NameReference;
 import nameTable.nameReference.NameReferenceLabel;
+import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
+import nameTable.nameScope.NameScopeKind;
+import nameTable.nameScope.SystemScope;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -45,10 +48,19 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 		return scope;
 	}
 
+	public SystemScope getRootScope() {
+		NameScope currentScope = scope;
+		while (currentScope.getScopeKind() != NameScopeKind.NSK_SYSTEM) {
+			currentScope = currentScope.getEnclosingScope();
+		}
+		return (SystemScope)currentScope;
+	}
+	
 	public abstract NameDefinitionKind getDefinitionKind();
 	
 	public boolean isTypeDefinition() {
-		return (getDefinitionKind() == NameDefinitionKind.NDK_TYPE);
+		return (getDefinitionKind() == NameDefinitionKind.NDK_TYPE || 
+				getDefinitionKind() == NameDefinitionKind.NDK_TYPE_PARAMETER);
 	}
 	
 	public boolean isEnumType() {
@@ -78,6 +90,76 @@ public abstract class NameDefinition implements Comparable<NameDefinition> {
 	
 	public boolean isImportedStaticMember() {
 		return false;
+	}
+	
+	/**
+	 * Get the declare type definition for a name definition. 
+	 * <OL><LI>If it is a variable, field or a parameter definition, then return the type definition of the variable
+	 * <LI>If it is a method definition, then return the return type of the method
+	 * <LI>If it is a type definition, then return itself
+	 * <LI>Otherwise return null</OL>
+	 * 
+	 * @see NameDefinition getDeclareTypeDefinition()
+	 */
+	public TypeDefinition getDeclareTypeDefinition() {
+		TypeDefinition resultTypeDefinition = null;
+		TypeReference resultTypeReference = null;
+		
+		// Determine the result type reference and its bounded type definition
+		NameDefinitionKind nameDefKind = getDefinitionKind();
+		if (nameDefKind == NameDefinitionKind.NDK_TYPE) {
+			resultTypeDefinition = (TypeDefinition)this;
+		} else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
+			FieldDefinition fieldDef = (FieldDefinition)this;
+			resultTypeReference = fieldDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
+			VariableDefinition varDef = (VariableDefinition)this;
+			resultTypeReference = varDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
+			MethodDefinition methodDef = (MethodDefinition)this;
+			if (!methodDef.isConstructor()) {
+				resultTypeReference = methodDef.getReturnType();
+				if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+				resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+			}
+		}
+		return resultTypeDefinition;
+	}
+
+	/**
+	 * Get the declare type reference for a name definition. 
+	 * <OL><LI>If it is variable, field or a parameter definition, then return the type reference in the variable's
+	 * declaration
+	 * <LI>If it is a method definition, then return the return type reference of the method
+	 * <LI>Otherwise return null</OL>
+	 * 
+	 * @see NameReference.getResultTypeRefernece()
+	 */
+	public TypeReference getDeclareTypeReference() {
+		TypeReference resultTypeReference = null;
+		
+		// Determine the result type reference and its bounded type definition
+		NameDefinitionKind nameDefKind = getDefinitionKind();
+		if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
+			FieldDefinition fieldDef = (FieldDefinition)this;
+			resultTypeReference = fieldDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
+			VariableDefinition varDef = (VariableDefinition)this;
+			resultTypeReference = varDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
+			MethodDefinition methodDef = (MethodDefinition)this;
+			if (!methodDef.isConstructor()) {
+				resultTypeReference = methodDef.getReturnType();
+				if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			}
+		}
+		return resultTypeReference;
 	}
 	
 	/**

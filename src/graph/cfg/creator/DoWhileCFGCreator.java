@@ -17,18 +17,19 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class DoWhileCFGCreator implements StatementCFGCreator {
+public class DoWhileCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
 		// 1 Create a startNode for the entry of do statement, and add it to the currentCFG, then call 
 		//   StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNodetraverse() to traverse the list precedeNodeList, and if the reason of 
 		//   the precedeNode in the list is PPR_SEQUENCE, add an edge <precedeNode, startNode> to the current CFG, and remove precedeNode from the 
 		//   list to form a new precedeNodeList
 		DoStatement doStatement = (DoStatement)astNode;
-		ExecutionPoint startNode = ExecutionPointFactory.createVirtualStart(doStatement);
+		ExecutionPoint startNode = factory.createVirtualStart(doStatement);
 		currentCFG.addNode(startNode);
 		precedeNodeList = StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNode(currentCFG, precedeNodeList, startNode);
 		
@@ -41,19 +42,19 @@ public class DoWhileCFGCreator implements StatementCFGCreator {
 		Statement loopBody = doStatement.getBody();
 		if (loopBody != null) {
 			StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(loopBody);
-			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList);
+			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList, null);
 		} else {
 			// if the body of the loop is null, then the precede node of the succeed node should still be startNode
 			loopBodyPrecedeNodeList = loopPrecedeNodeList;		
 		}
 		
 		// 4 Create node for the condition of the do statement, add it to currentCFG, and add edge <conditionNode, startNode> to currentCFG 
-		ExecutionPoint conditionNode = ExecutionPointFactory.createPredicate(doStatement);
+		ExecutionPoint conditionNode = factory.createPredicate(doStatement);
 		currentCFG.addNode(conditionNode);
 		currentCFG.addEdge(new CFGEdge(conditionNode, startNode, CFGEdge.LABEL_TRUE));
 		
 		// 5 Create a virtual end node endNode for the do statement, add it to currentCFG, and add edge <conditionNode, endNode> to currentCFG
-		ExecutionPoint endNode = ExecutionPointFactory.createVirtualEnd(doStatement);
+		ExecutionPoint endNode = factory.createVirtualEnd(doStatement);
 		currentCFG.addNode(endNode);
 		currentCFG.addEdge(new CFGEdge(conditionNode, endNode, CFGEdge.LABEL_FALSE));
 		
@@ -66,9 +67,9 @@ public class DoWhileCFGCreator implements StatementCFGCreator {
 			String label = loopBodyPrecedeNode.getLabel();
 			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, label));
-			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && label == null) {
+			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), endNode, null));
-			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && label == null) {
+			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, null));
 			} else precedeNodeList.add(loopBodyPrecedeNode);
 		}

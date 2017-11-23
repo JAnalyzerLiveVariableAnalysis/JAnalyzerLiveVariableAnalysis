@@ -178,6 +178,7 @@ public class SourceCodeFileSet implements Iterable<SourceCodeFile> {
 		for (File file : files) {
 			SourceCodeFile sourceCodeFile = new SourceCodeFile(file);
 			String fileUnitName = getFileUnitName(sourceCodeFile.getFileFullName());
+			sourceCodeFile.setFileUnitName(fileUnitName);
 			fileMap.put(fileUnitName, sourceCodeFile);
 		}
 	}

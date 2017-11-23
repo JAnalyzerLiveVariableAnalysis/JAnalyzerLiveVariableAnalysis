@@ -110,6 +110,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.eclipse.jdt.core.dom.WildcardType;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 import util.Stack;
 
@@ -124,14 +125,14 @@ import util.Stack;
  */
 public class BlockASTVisitor extends ASTVisitor {
 	protected NameTableCreator creator = null;
-	protected CompilationUnitFile unitFile = null;
+	protected CompilationUnitRecorder unitFile = null;
 
 	protected Stack<NameScope> scopeStack = null;
 	
 	protected TypeASTVisitor typeVisitor = null;
 	protected ExpressionASTVisitor expressionVisitor = null;
 	
-	public BlockASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope currentScope) {
+	public BlockASTVisitor(NameTableCreator creator, CompilationUnitRecorder unitFile, NameScope currentScope) {
 		this.creator = creator;
 		this.unitFile = unitFile;
 		

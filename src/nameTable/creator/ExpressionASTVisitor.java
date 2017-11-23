@@ -73,6 +73,7 @@ import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -95,17 +96,17 @@ public class ExpressionASTVisitor extends ASTVisitor {
 	protected NameScope scope = null;
 	protected TypeASTVisitor typeVisitor = null;
 
-	protected CompilationUnitFile unitFile = null;
+	protected CompilationUnitRecorder unitFile = null;
 	protected NameTableCreator creator = null;
 	
-	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope scope) {
+	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitRecorder unitFile, NameScope scope) {
 		this.creator = creator;
 		this.unitFile = unitFile;
 		this.scope = scope;
 		typeVisitor = new TypeASTVisitor(unitFile, scope);
 	}
 	
-	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitFile unitFile, NameScope scope, boolean createReferenceForLiteral) {
+	public ExpressionASTVisitor(NameTableCreator creator, CompilationUnitRecorder unitFile, NameScope scope, boolean createReferenceForLiteral) {
 		this.creator = creator;
 		this.unitFile = unitFile;
 		this.scope = scope;
@@ -121,7 +122,7 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		return lastReference;
 	}
 	
-	public void reset(CompilationUnitFile unitFile, NameScope scope) {
+	public void reset(CompilationUnitRecorder unitFile, NameScope scope) {
 		this.unitFile = unitFile;
 		this.scope = scope;
 		lastReference = null;
@@ -539,6 +540,16 @@ public class ExpressionASTVisitor extends ASTVisitor {
 		}
 		methodRef.setArgumentList(argumentReferenceList);
 		createReferenceForLiteral = oldCreateREferenceForLiteral;
+
+		List<Type> typeArguments = node.typeArguments();
+		List<TypeReference> typeArgumentRefList = new ArrayList<TypeReference>();
+		for (Type typeArg : typeArguments) {
+			typeVisitor.reset(scope);
+			typeArg.accept(typeVisitor);
+			TypeReference typeArgRef = typeVisitor.getResult();
+			typeArgumentRefList.add(typeArgRef);
+		}
+		methodRef.setTypeArgumentList(typeArgumentRefList);
 
 		// The reference group is the result reference of the node, save it to the lastReference
 		lastReference = referenceGroup;

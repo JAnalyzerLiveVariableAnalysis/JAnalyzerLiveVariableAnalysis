@@ -75,7 +75,9 @@ public class NRGMethodInvocation extends NameReferenceGroup {
 				}
 			}
 			
-			if (typeDef != null) typeDef.resolve(methodRef);
+			if (typeDef != null) {
+				typeDef.resolve(methodRef);
+			}
 		} else {
 			// The first expression is the method reference, we resolve the method reference in the 
 			// current scope
@@ -95,6 +97,7 @@ public class NRGMethodInvocation extends NameReferenceGroup {
 		if (methodRef.isResolved()) {
 			MethodDefinition methodDef = (MethodDefinition)methodRef.getDefinition();
 			TypeReference typeRef = methodDef.getReturnType();
+			
 			if (typeRef != null) {
 				typeRef.resolveBinding();
 				bindTo(typeRef.getDefinition());

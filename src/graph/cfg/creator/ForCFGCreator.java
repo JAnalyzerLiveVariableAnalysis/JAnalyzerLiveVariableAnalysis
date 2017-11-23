@@ -18,13 +18,14 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class ForCFGCreator implements StatementCFGCreator {
+public class ForCFGCreator extends StatementCFGCreator {
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
 		// 1 Create CFG for the initialize expression of the for statement, and get new precedeNodeList
 		ForStatement forStatement = (ForStatement)astNode;
 		List<Expression> expressionList = forStatement.initializers();
@@ -33,7 +34,7 @@ public class ForCFGCreator implements StatementCFGCreator {
 		// 2 Create a conditionNode for the condition expression of the for statement, add it to the currentCFG, then call 
 		//   StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNodetraverse() to use conditionNode to substitute PPR_SEQUENCE nodes in
 		//   precedeNodeList, and add suitable edges to currentCFG, and get new precedeNodeList
-		ExecutionPoint conditionNode = ExecutionPointFactory.createPredicate(forStatement);
+		ExecutionPoint conditionNode = factory.createPredicate(forStatement);
 		currentCFG.addNode(conditionNode);
 		precedeNodeList = StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNode(currentCFG, precedeNodeList, conditionNode);
 		
@@ -46,7 +47,7 @@ public class ForCFGCreator implements StatementCFGCreator {
 		Statement loopBody = forStatement.getBody();
 		if (loopBody != null) {
 			StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(loopBody);
-			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList);
+			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList, null);
 		} else {
 			// if the body of the loop is null, then the precede node of the succeed node should still be conditionNode
 			loopBodyPrecedeNodeList = loopPrecedeNodeList;		
@@ -54,10 +55,21 @@ public class ForCFGCreator implements StatementCFGCreator {
 		
 		// 5 Create CFG for the update expression of the for statement, and get new loopBodyPrecedeNodeList
 		expressionList = forStatement.updaters();
-		loopBodyPrecedeNodeList = ExpressionListCFGCreator.create(currentCFG, expressionList, loopBodyPrecedeNodeList);
+		List<PossiblePrecedeNode> updatePrecedeNodeList = new LinkedList<PossiblePrecedeNode>();
+		for (PossiblePrecedeNode loopBodyPrecedeNode : loopBodyPrecedeNodeList) {
+			PossiblePrecedeReasonType reason = loopBodyPrecedeNode.getReason();
+			String label = loopBodyPrecedeNode.getLabel();
+			// All sequence or matched label continue nodes in loop bodyPrecedeNodeList are precede node of the first update expression 
+			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
+				updatePrecedeNodeList.add(loopBodyPrecedeNode);
+			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
+				updatePrecedeNodeList.add(new PossiblePrecedeNode(loopBodyPrecedeNode.getNode(), PossiblePrecedeReasonType.PPR_SEQUENCE, null));
+			} else updatePrecedeNodeList.add(loopBodyPrecedeNode);
+		}
+		updatePrecedeNodeList = ExpressionListCFGCreator.create(currentCFG, expressionList, updatePrecedeNodeList);
 		
 		// 6 Create a virtual end node endNode for the for statement, add it to currentCFG, and add edge <conditionNode, endNode> to currentCFG
-		ExecutionPoint endNode = ExecutionPointFactory.createVirtualEnd(forStatement);
+		ExecutionPoint endNode = factory.createVirtualEnd(forStatement);
 		currentCFG.addNode(endNode);
 		currentCFG.addEdge(new CFGEdge(conditionNode, endNode, CFGEdge.LABEL_FALSE));
 		
@@ -65,16 +77,15 @@ public class ForCFGCreator implements StatementCFGCreator {
 		//   <loopBodyPrecedeNode, conditionNode> to currentCFG, if it is a PPR_BREAK node without label, add edge <loopBodyPrecedeNode, endNode>
 		//   to currentCFG, if it is a PPR_CONTINUE node without label, add edge <loopBodyPrecedeNode, conditionNode> to currentCFG, 
 		//   otherwise add it to precedeNodeList in the above 1
-		for (PossiblePrecedeNode loopBodyPrecedeNode : loopBodyPrecedeNodeList) {
-			PossiblePrecedeReasonType reason = loopBodyPrecedeNode.getReason();
-			String label = loopBodyPrecedeNode.getLabel();
+		for (PossiblePrecedeNode updatePrecedeNode : updatePrecedeNodeList) {
+			PossiblePrecedeReasonType reason = updatePrecedeNode.getReason();
+			String label = updatePrecedeNode.getLabel();
+			// Note that matched continue node in loop body have been treated before create node for update expression!
 			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
-				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, label));
-			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && label == null) {
-				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), endNode, null));
-			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && label == null) {
-				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, null));
-			} else precedeNodeList.add(loopBodyPrecedeNode);
+				currentCFG.addEdge(new CFGEdge(updatePrecedeNode.getNode(), conditionNode, label));
+			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
+				currentCFG.addEdge(new CFGEdge(updatePrecedeNode.getNode(), endNode, null));
+			} else precedeNodeList.add(updatePrecedeNode);
 		}
 		
 		// 8 Add endNode to the precedeNodeList

@@ -87,6 +87,20 @@ public class VariableDefinition extends NameDefinition {
 	}
 
 	/**
+	 * Reset type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (type != null) {
+			for (TypeParameterDefinition typeParameter : typeParameterList) {
+				if (type.getName().equals(typeParameter.getSimpleName())) {
+					type.resetBinding();
+					return;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Display a variable definition as "type[] variableName"
 	 */
 	public String toDeclarationString() {

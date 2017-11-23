@@ -99,4 +99,11 @@ public final class StatementCFGCreatorHelper {
 		if (returnExpression != null) return "return " + node.getExpression().toString();
 		else return "return";
 	}
+	
+	public static boolean needAddEdgeByMatchLabel(String precedeLabel, String nodeLabel) {
+		if (precedeLabel == null) return true;
+		if (nodeLabel == null) return false;
+		if (precedeLabel.equals(nodeLabel)) return true;
+		return false;
+	}
 }

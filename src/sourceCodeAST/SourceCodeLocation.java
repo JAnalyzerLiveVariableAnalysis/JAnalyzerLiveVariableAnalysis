@@ -143,9 +143,13 @@ public class SourceCodeLocation implements Comparable<SourceCodeLocation> {
 		int lineNumber = root.getLineNumber(position);
 		int column = root.getColumnNumber(position);
 		
-		if (lineNumber < 0 || column < 0) 
+		if (lineNumber < 0 || column < 0) { 
+			System.out.println("Node type: " + node.getNodeType() + ", position: " + position + ", node: ");
+			System.out.println(node);
+			System.out.println("compilation unit: " + compilationUnitFileName + ", root: ");
+			System.out.println(root);
 			throw new AssertionError("Get illegal linenumber(" + lineNumber + ") or column(" + column + ") for AST node: " + node.toString());
-		
+		}
 		return new SourceCodeLocation(lineNumber, column, compilationUnitFileName);
 	}
 

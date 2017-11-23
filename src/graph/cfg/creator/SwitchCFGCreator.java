@@ -20,32 +20,35 @@ import org.eclipse.jdt.core.dom.SwitchStatement;
  * @version 1.0
  *
  */
-public class SwitchCFGCreator implements StatementCFGCreator {
+public class SwitchCFGCreator extends StatementCFGCreator {
 	public final static String CASE_LABEL_DEFAULT = "default";
 	public final static String CASE_LABEL_SEPERATOR = ":";
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 		
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
+
 		SwitchStatement switchStatement = (SwitchStatement)astNode;
 		
 		// 1.1 Create an execution point for the condition expression in this switch statement, and add it to the current CFG
-		ExecutionPoint conditionNode = ExecutionPointFactory.createPredicate(switchStatement);
+		ExecutionPoint conditionNode = factory.createPredicate(switchStatement);
 		currentCFG.addNode(conditionNode);
 		// 1.2 Traverse the list precedeNodeList, if the reason of the precedeNode in the list is PPR_SEQUENCE, 
 		//    add an edge <precedeNode, conditionNode> to the current CFG, and remove precedeNode from the list to form a new precedeNodeList
 		precedeNodeList = StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNode(currentCFG, precedeNodeList, conditionNode);
 
 		// 2 Create a virtual end node for the statement and add it to currentCFG
-		ExecutionPoint endNode = ExecutionPointFactory.createVirtualEnd(switchStatement);
-		currentCFG.addNode(endNode);
+		ExecutionPoint endNode = null;
 
 		// 3 Get the case branches
 		List<Statement> caseStatementList = switchStatement.statements();
 		if (caseStatementList == null) {
 			// 4 caseStatementList == null, this switch statement is an empty statement actually, add an edge from conditionNode to endNode directly
+			endNode = factory.createVirtualEnd(switchStatement);
+			currentCFG.addNode(endNode);
 			currentCFG.addEdge(new CFGEdge(conditionNode, endNode));
 			
 			// And add endNode to the precedeNodeList, and return precedeNodeList
@@ -57,6 +60,7 @@ public class SwitchCFGCreator implements StatementCFGCreator {
 		// 5 if caseStatementList != null, traverse the list and create CFG for all case branches. 
 		//   Note that each case branch is begin with an ASTNode SwitchCase
 		List<PossiblePrecedeNode> casePrecedeNodeList = null;
+		boolean hasDefault = false;
 		for (Statement caseStatement : caseStatementList) {
 			if (caseStatement.getNodeType() == ASTNode.SWITCH_CASE) {
 				// The statement is a case label, that is, the beginning of a case branch
@@ -64,8 +68,10 @@ public class SwitchCFGCreator implements StatementCFGCreator {
 				// 5.1 Set the precede node list casePrecedeNodeList for the next case branch
 				Expression caseExpression = ((SwitchCase)caseStatement).getExpression();
 				String caseLabel;
-				if (caseExpression == null) caseLabel = CASE_LABEL_DEFAULT;
-				else caseLabel = StatementCFGCreatorHelper.astNodeToString(caseExpression);
+				if (caseExpression == null) {
+					caseLabel = CASE_LABEL_DEFAULT;
+					hasDefault = true;
+				} else caseLabel = StatementCFGCreatorHelper.astNodeToString(caseExpression);
 
 				if (casePrecedeNodeList == null) {
 					// 5.1.1 Create a new PossiblePrecedeNode list, which only include one node, i.e. conditionNode, since the precede node of the 
@@ -94,7 +100,7 @@ public class SwitchCFGCreator implements StatementCFGCreator {
 				StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(caseStatement);
 				// Since each case branch starts with a SwitchCase ASTNode, thus casePrecedeNodeList should not be null!
 				if (casePrecedeNodeList == null) throw new AssertionError("The casePrecedeNodeList is null in SwitchCFGCreator!");		
-				casePrecedeNodeList = creator.create(currentCFG, caseStatement, casePrecedeNodeList);
+				casePrecedeNodeList = creator.create(currentCFG, caseStatement, casePrecedeNodeList, null);
 			}
 		}
 
@@ -106,17 +112,31 @@ public class SwitchCFGCreator implements StatementCFGCreator {
 				PossiblePrecedeReasonType reason = casePrecedeNode.getReason();
 				if ((reason == PossiblePrecedeReasonType.PPR_BREAK && casePrecedeNode.getLabel() == null) || 
 						reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
+					if (endNode == null) {
+						endNode = factory.createVirtualEnd(switchStatement);
+						currentCFG.addNode(endNode);
+					}
 					currentCFG.addEdge(new CFGEdge(casePrecedeNode.getNode(), endNode, casePrecedeNode.getLabel()));
 				} else precedeNodeList.add(casePrecedeNode);
+			}
+			if (!hasDefault) {
+				// 2017/9/9: There are no default label, we also need add an edge from condition node to end node!
+				if (endNode == null) {
+					endNode = factory.createVirtualEnd(switchStatement);
+					currentCFG.addNode(endNode);
+				}
+				currentCFG.addEdge(new CFGEdge(conditionNode, endNode));
 			}
 		} else {
 			// As the same as the above 4, when casePrecedeNodeList == null, this switch statement is an empty statement actually, add an edge 
 			// from conditionNode to endNode directly
+			endNode = factory.createVirtualEnd(switchStatement);
+			currentCFG.addNode(endNode);
 			currentCFG.addEdge(new CFGEdge(conditionNode, endNode));
 		}
 		
 		// 7 Add endNode to the precedeNodeList
-		precedeNodeList.add(new PossiblePrecedeNode(endNode, PossiblePrecedeReasonType.PPR_SEQUENCE, null));
+		if (endNode != null) precedeNodeList.add(new PossiblePrecedeNode(endNode, PossiblePrecedeReasonType.PPR_SEQUENCE, null));
 		return precedeNodeList;
 	}
 

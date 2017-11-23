@@ -23,7 +23,7 @@ public class ExpressionListCFGCreator {
 		ExecutionPoint precedeNode = null;
 		for (Expression exp : expressionList) {
 			// 1 Create an execution point for the expression exp, add it to currentCFG
-			ExecutionPoint expNode = ExecutionPointFactory.create(exp);
+			ExecutionPoint expNode = currentCFG.getExecutionPointFactory().create(exp);
 			currentCFG.addNode(expNode);
 			
 			if (precedeNode == null) {

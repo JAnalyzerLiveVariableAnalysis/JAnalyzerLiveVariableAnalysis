@@ -25,7 +25,7 @@ public class TestCFGCreator {
 	 */
 	@SuppressWarnings("unused")
 	public static void main(String[] args) {
-		String rootPath = "E:\\";
+		String rootPath = "C:\\";
 		
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 		String path1 = rootPath + "ZxcTools\\debug\\package\\print_tokens2\\";
@@ -59,9 +59,9 @@ public class TestCFGCreator {
 			exc.printStackTrace();
 		}
 		
-		testMatchASTNode(path8, output);
-		writer.close();
-		output.close();
+		testMatchASTNode(path3, output);
+		if (writer != null) writer.close();
+		if (output != null) output.close();
 		
 		
 //		testLoadFile();
@@ -74,23 +74,23 @@ public class TestCFGCreator {
 			String fileName = parser.getFileUnitName(codeFile);
 			
 			System.out.println("Scan file: " + fileName);
-//			if (!fileName.contains("RECompiler")) {
-//				parser.toGetNextParsedFile();
-//				continue;
-//			}
-//			String fileContent = parser.getCurrentFileContent();
+			if (!fileName.contains("SoftwareStructCreator")) continue; 
+
+			if (!codeFile.hasCreatedAST()) {
+				System.out.println("Can not create AST for code file " + fileName);
+				continue;
+			}
+				
 			CompilationUnit root = codeFile.getASTRoot();
-		
 			CFGCreator creator = new CFGCreator(fileName, root);
 			List<ControlFlowGraph> cfgs = creator.create();
 			
-			
 			for (ControlFlowGraph cfg : cfgs) {
-//				try {
-//					cfg.simplyWriteToDotFile(output);
-//				} catch (Exception exc) {
-//					exc.printStackTrace();
-//				}
+				try {
+					cfg.simplyWriteToDotFile(output);
+				} catch (Exception exc) {
+					exc.printStackTrace();
+				}
 				
 				List<GraphNode> nodes = cfg.getAllNodes();
 				if (nodes != null) {

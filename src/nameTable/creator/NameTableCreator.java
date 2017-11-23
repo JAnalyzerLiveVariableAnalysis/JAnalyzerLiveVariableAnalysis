@@ -26,6 +26,7 @@ import org.eclipse.jdt.core.dom.TypeParameter;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeFile;
 import sourceCodeAST.SourceCodeFileSet;
 import sourceCodeAST.SourceCodeLocation;
@@ -70,16 +71,16 @@ import nameTable.nameScope.SystemScope;
  */
 public class NameTableCreator {
 	protected SourceCodeFileSet codeFileSet = null;
-	List<CompilationUnitFile> errorUnitList = null;
+	List<CompilationUnitRecorder> errorUnitList = null;
 	
 	protected TypeASTVisitor typeVisitor = null;
 	protected ExpressionASTVisitor expressionVisitor = null;
 
 	public NameTableCreator(SourceCodeFileSet codeFileSet) {
 		this.codeFileSet = codeFileSet;
-		errorUnitList = new ArrayList<CompilationUnitFile>();
+		errorUnitList = new ArrayList<CompilationUnitRecorder>();
 		
-		expressionVisitor = new ExpressionASTVisitor(this, null, null);
+		expressionVisitor = new ExpressionASTVisitor(this, null, null, true);
 		typeVisitor = new TypeASTVisitor(null, null);
 	}
 	
@@ -160,7 +161,7 @@ public class NameTableCreator {
 	/**
 	 * Return the list of compilation unit which has error when creating the name table. 
 	 */
-	public List<CompilationUnitFile> getErrorUnitList() {
+	public List<CompilationUnitRecorder> getErrorUnitList() {
 		return errorUnitList;
 	}
 	
@@ -171,8 +172,8 @@ public class NameTableCreator {
 		if (errorUnitList == null) return;
 		
 		writer.println("Unit\tError Message");
-		for (CompilationUnitFile errorUnit : errorUnitList) {
-			writer.println(errorUnit.unitName + "\t" + errorUnit.errorMessage);
+		for (CompilationUnitRecorder errorUnit : errorUnitList) {
+			writer.println(errorUnit.unitName + "\t" + errorUnit.getErrorMessage());
 		}
 	}
 	
@@ -188,7 +189,7 @@ public class NameTableCreator {
 			
 			if (codeFile.hasCreatedAST()) {
 				CompilationUnit root = codeFile.getASTRoot();
-				CompilationUnitFile currentUnitFile = new CompilationUnitFile(unitName, root);
+				CompilationUnitRecorder currentUnitFile = new CompilationUnitRecorder(unitName, root);
 
 				int rootLength = root.getLength();
 				int typeNumber = 0;
@@ -205,7 +206,7 @@ public class NameTableCreator {
 			} else {
 				String parsingErrorMessage = codeFile.getParsingErrorMessage();
 				String errorMessage = "ParseringError : " + parsingErrorMessage;
-				CompilationUnitFile unitFile = new CompilationUnitFile(unitName, null);
+				CompilationUnitRecorder unitFile = new CompilationUnitRecorder(unitName, null);
 				unitFile.setErrorMessage(errorMessage);
 				errorUnitList.add(unitFile);
 
@@ -225,7 +226,7 @@ public class NameTableCreator {
      *     { TypeDeclaration | EnumDeclaration | AnnotationTypeDeclaration | ; }
      * @pre-condition: currentSourceFileName ! = null &&  currentASTRoot != null
 	 */
-	int scanCurrentCompilationUnit(CompilationUnitFile currentUnitFile, SystemScope currentScope) {
+	int scanCurrentCompilationUnit(CompilationUnitRecorder currentUnitFile, SystemScope currentScope) {
 		int scanedTypeNumber = 0;
 		CompilationUnit node = currentUnitFile.root; 
 		// 1. Process the package declaration in the unit
@@ -324,7 +325,7 @@ public class NameTableCreator {
      *  BodyDeclaration: FieldDelcaration MethodDeclaration TypeDeclaration           
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile currentUnitFile, String qualifier, TypeDeclaration node, NameScope currentScope) {
+	void scan(CompilationUnitRecorder currentUnitFile, String qualifier, TypeDeclaration node, NameScope currentScope) {
 		// Create a type definition for the node
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
@@ -414,7 +415,7 @@ public class NameTableCreator {
 	/**
 	 * Scan the initializer block of the detailed type definition
 	 */
-	void scan(CompilationUnitFile currentUnitFile, Initializer node, DetailedTypeDefinition type) {
+	void scan(CompilationUnitRecorder currentUnitFile, Initializer node, DetailedTypeDefinition type) {
 		Block body = node.getBody();
 		if (body != null) {
 			SourceCodeLocation start = SourceCodeLocation.getStartLocation(body, currentUnitFile.root, currentUnitFile.unitName);
@@ -444,7 +445,7 @@ public class NameTableCreator {
      *	    }
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile currentUnitFile, String qualifier, EnumDeclaration node, NameScope currentScope) {
+	void scan(CompilationUnitRecorder currentUnitFile, String qualifier, EnumDeclaration node, NameScope currentScope) {
 		// Create a type definition for the node
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
@@ -479,7 +480,7 @@ public class NameTableCreator {
      *                       { , VariableDeclarationFragment } ;
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile currentUnitFile, String qualifier, FieldDeclaration node, NameScope currentScope) {
+	void scan(CompilationUnitRecorder currentUnitFile, String qualifier, FieldDeclaration node, NameScope currentScope) {
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
 		typeVisitor.reset(currentUnitFile, currentScope);
@@ -494,7 +495,7 @@ public class NameTableCreator {
 		List<VariableDeclarationFragment> fragments = node.fragments();
 		for (VariableDeclarationFragment varNode : fragments) {
 			// Define the variable to the current scope
-			defineField(currentUnitFile, qualifier, varNode, typeRef, currentScope, modifierFlag);
+			FieldDefinition field = defineField(currentUnitFile, qualifier, varNode, typeRef, currentScope, modifierFlag);
 			
 			// Visit the initializer in the variable declaration
 			Expression initializer = varNode.getInitializer();
@@ -503,6 +504,7 @@ public class NameTableCreator {
 				initializer.accept(expressionVisitor);
 				NameReference initExpRef = expressionVisitor.getResult();
 				currentScope.addReference(initExpRef);
+				field.setInitializer(initExpRef);
 			}
 		}
 	}
@@ -517,12 +519,19 @@ public class NameTableCreator {
      *   [ throws TypeName { , TypeName } ] ( Block | ; )
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile currentUnitFile, String qualifier, MethodDeclaration node, NameScope currentScope) {
+	void scan(CompilationUnitRecorder currentUnitFile, String qualifier, MethodDeclaration node, NameScope currentScope) {
+		// Create method definition for the node
+		String methodName = node.getName().getFullyQualifiedName();
+		String fullQualifiedName = (qualifier == null) ? methodName : qualifier + NameReferenceLabel.NAME_QUALIFIER + methodName;
+		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, currentUnitFile.root, currentUnitFile.unitName);
+		SourceCodeLocation endLocation = SourceCodeLocation.getEndLocation(node, currentUnitFile.root, currentUnitFile.unitName);
+		MethodDefinition methodDef = new MethodDefinition(methodName, fullQualifiedName, location, currentScope, endLocation);
+
 		// Create type reference for the return type
 		Type returnType = node.getReturnType2();
 		TypeReference returnTypeRef = null;
 		if (returnType != null) {
-			typeVisitor.reset(currentUnitFile, currentScope);
+			typeVisitor.reset(currentUnitFile, methodDef);
 			returnType.accept(typeVisitor);
 			returnTypeRef = typeVisitor.getResult();
 			int dimension = returnTypeRef.getDimension() + node.getExtraDimensions();
@@ -531,13 +540,6 @@ public class NameTableCreator {
 			// Add the reference to the reference list in the current scope, which include the method
 			currentScope.addReference(returnTypeRef);
 		} // else is a constructor 
-		
-		// Create method definition for the node
-		String methodName = node.getName().getFullyQualifiedName();
-		String fullQualifiedName = (qualifier == null) ? methodName : qualifier + NameReferenceLabel.NAME_QUALIFIER + methodName;
-		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, currentUnitFile.root, currentUnitFile.unitName);
-		SourceCodeLocation endLocation = SourceCodeLocation.getEndLocation(node, currentUnitFile.root, currentUnitFile.unitName);
-		MethodDefinition methodDef = new MethodDefinition(methodName, fullQualifiedName, location, currentScope, endLocation);
 		methodDef.setReturnType(returnTypeRef);
 		methodDef.setModifierFlag(node.getModifiers());
 		methodDef.setConstructor(node.isConstructor());
@@ -591,7 +593,7 @@ public class NameTableCreator {
 	 * Scan an enum constant declaration node to create name definitions and references
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile unitFile, String qualifier, EnumConstantDeclaration node, NameScope currentScope) {
+	void scan(CompilationUnitRecorder unitFile, String qualifier, EnumConstantDeclaration node, NameScope currentScope) {
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
 		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
@@ -601,7 +603,7 @@ public class NameTableCreator {
 		
 		List<Expression> arguments = node.arguments();
 		for (Expression argument : arguments) {
-			expressionVisitor.reset(currentScope);
+			expressionVisitor.reset(unitFile, currentScope);
 			argument.accept(expressionVisitor);
 			NameReference argRef = expressionVisitor.getResult();
 			if (argRef != null) {
@@ -620,7 +622,7 @@ public class NameTableCreator {
      * @param superTypeReference: In general, anonymous class is a sub-class of a interface or class.
 	 */
 	@SuppressWarnings("unchecked")
-	void scan(CompilationUnitFile currentUnitFile, String qualifier, AnonymousClassDeclaration node, NameScope currentScope, TypeReference superTypeReference) {
+	void scan(CompilationUnitRecorder currentUnitFile, String qualifier, AnonymousClassDeclaration node, NameScope currentScope, TypeReference superTypeReference) {
 		// Create a type definition for the node
 		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, currentUnitFile.root, currentUnitFile.unitName);
 		SourceCodeLocation endLocation = SourceCodeLocation.getEndLocation(node, currentUnitFile.root, currentUnitFile.unitName);
@@ -685,7 +687,7 @@ public class NameTableCreator {
 	/**
 	 * Define a parameter in a SingleVariableDeclaration to the scope given by the parameter currentScope
 	 */
-	void defineParameber(CompilationUnitFile currentUnitFile, SingleVariableDeclaration node, NameScope currentScope) {
+	VariableDefinition defineParameber(CompilationUnitRecorder currentUnitFile, SingleVariableDeclaration node, NameScope currentScope) {
 		Type type = node.getType();
 		typeVisitor.reset(currentUnitFile, currentScope);
 		type.accept(typeVisitor);
@@ -704,6 +706,7 @@ public class NameTableCreator {
 		variableDef.setDefinitionKind(NameDefinitionKind.NDK_PARAMETER);
 		variableDef.setType(typeRef);
 		currentScope.define(variableDef);
+		return variableDef;
 	}
 
 	
@@ -713,7 +716,7 @@ public class NameTableCreator {
 	 * Because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 	 * we should copy the type reference for the variable definition of the node.
 	 */
-	void defineField(CompilationUnitFile currentUnitFile, String qualifier, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope, int modifierFlag) {
+	FieldDefinition defineField(CompilationUnitRecorder currentUnitFile, String qualifier, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope, int modifierFlag) {
 		// And because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 		// we should copy the type reference for the variable definition of the node.
 		TypeReference typeRef = null;
@@ -736,6 +739,7 @@ public class NameTableCreator {
 		fieldDef.setType(typeRef);
 		fieldDef.setModifierFlag(modifierFlag);
 		currentScope.define(fieldDef);
+		return fieldDef;
 	}
 	
 	
@@ -745,7 +749,7 @@ public class NameTableCreator {
 	 * Because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 	 * we should copy the type reference for the variable definition of the node.
 	 */
-	void defineVariable(CompilationUnitFile currentUnitFile, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope) {
+	VariableDefinition defineVariable(CompilationUnitRecorder currentUnitFile, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope) {
 		// And because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 		// we should copy the type reference for the variable definition of the node.
 		TypeReference typeRef = null;
@@ -766,5 +770,6 @@ public class NameTableCreator {
 		VariableDefinition variableDef = new VariableDefinition(varName, varName, location, currentScope);
 		variableDef.setType(typeRef);
 		currentScope.define(variableDef);
+		return variableDef;
 	}
 }

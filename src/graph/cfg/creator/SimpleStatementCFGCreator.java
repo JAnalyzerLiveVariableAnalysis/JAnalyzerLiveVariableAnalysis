@@ -16,15 +16,15 @@ import org.eclipse.jdt.core.dom.Statement;
  * @since 2012-12-29
  * @version 1.0
  */
-public class SimpleStatementCFGCreator implements StatementCFGCreator {
+public class SimpleStatementCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 		if (astNode.getNodeType() == ASTNode.EMPTY_STATEMENT) return precedeNodeList;
 		
 		// 1. Create an execution point for astNode, and add it to the current CFG
-		ExecutionPoint execPoint = ExecutionPointFactory.create(astNode);
+		ExecutionPoint execPoint = currentCFG.getExecutionPointFactory().create(astNode);
 		currentCFG.addNode(execPoint);
 		
 		// 2. Traverse the list precedeNodeList, if the reason of the precedeNode in the list is PPR_SEQUENCE, 

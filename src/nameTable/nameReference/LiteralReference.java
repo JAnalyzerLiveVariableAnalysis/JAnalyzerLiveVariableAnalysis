@@ -74,4 +74,21 @@ public class LiteralReference extends NameReference {
 	public boolean isThisReference() {
 		return (name.equals(NameReferenceLabel.KEYWORD_THIS));
 	}
+	
+	/**
+	 * Test if the reference is "null"
+	 */
+	public boolean isNullReference() {
+		return (name.equals(NameReferenceLabel.KEYWORD_NULL));
+	}
+	
+	@Override
+	public String toString() {
+		return kind.id + " Reference [Name = " + name + " @ " + location.getUniqueId() + ", value = " + literal + "]";
+	}
+	
+	@Override
+	public String toSimpleString() {
+		return literal;
+	}
 }

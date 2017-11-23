@@ -3,14 +3,18 @@ package nameTable.nameReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import nameTable.nameDefinition.DetailedTypeDefinition;
 import nameTable.nameDefinition.FieldDefinition;
+import nameTable.nameDefinition.ImportedTypeDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.TypeDefinition;
+import nameTable.nameDefinition.TypeParameterDefinition;
 import nameTable.nameDefinition.VariableDefinition;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.NameScopeKind;
+import nameTable.nameScope.SystemScope;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -74,6 +78,17 @@ public class NameReference implements Comparable<NameReference> {
 	}
 
 	/**
+	 * Return the system scope (i.e. root scope) of the reference 
+	 */
+	public SystemScope getRootScope() {
+		NameScope currentScope = scope;
+		while (currentScope.getScopeKind() != NameScopeKind.NSK_SYSTEM) {
+			currentScope = currentScope.getEnclosingScope();
+		}
+		return (SystemScope)currentScope;
+	}
+
+	/**
 	 * Return the kind of the reference
 	 */
 	public NameReferenceKind getReferenceKind() {
@@ -85,6 +100,13 @@ public class NameReference implements Comparable<NameReference> {
 	 */
 	public void bindTo(NameDefinition definition) {
 		this.definition = definition;
+	}
+
+	/**
+	 * Bind the reference to null for resolving again!
+	 */
+	public void resetBinding() {
+		this.definition = null;
 	}
 
 	/**
@@ -133,29 +155,140 @@ public class NameReference implements Comparable<NameReference> {
 	}
 	
 	/**
-	 * Get the result type definition for a reference which is regarded as an expression. 
-	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type definition of the variable
-	 * <LI>If the reference is bind to a method definition, then return the return type of the method
+	 * Get the result type reference for a reference which is regarded as an expression. 
+	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type reference in the variable's
+	 * declaration
+	 * <LI>If the reference is bind to a method definition, then return the return type reference of the method
 	 * <LI>Otherwise return null</OL>
+	 * 
+	 * <p>Note: Before call this method, the current reference should be resolved before;
+	 * 
+	 * @see NameDefinition getDeclareTypeReference()
 	 */
-	public TypeDefinition getResultTypeDefinition() {
-		if (!isResolved()) resolveBinding();
+	public TypeReference getResultTypeReference() {
+		if (isGroupReference()) return null;
 		
 		NameDefinition nameDef = getDefinition();
 		if (nameDef == null) return null;
 		
+		TypeReference resultTypeReference = null;
+		
+		// Determine the result type reference and its bounded type definition
 		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
-		if (nameDefKind == NameDefinitionKind.NDK_TYPE) return (TypeDefinition)nameDef;
-		else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
+		if (nameDefKind == NameDefinitionKind.NDK_TYPE) {
+			if (this.isTypeReference()) resultTypeReference = (TypeReference)this; 
+		} else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
 			FieldDefinition fieldDef = (FieldDefinition)nameDef;
-			return fieldDef.getTypeDefinition();
+			resultTypeReference = fieldDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
 		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
 			VariableDefinition varDef = (VariableDefinition)nameDef;
-			return varDef.getTypeDefinition();
+			resultTypeReference = varDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
 		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
 			MethodDefinition methodDef = (MethodDefinition)nameDef;
-			return methodDef.getReturnTypeDefinition();
-		} else return null;
+			if (!methodDef.isConstructor()) {
+				resultTypeReference = methodDef.getReturnType();
+				if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			}
+		}
+		
+		return resultTypeReference;
+	}
+
+	/**
+	 * Get the result type definition for a reference which is regarded as an expression. 
+	 * <OL><LI>If the reference is bind to a variable, field or a parameter definition, then return the type definition of the variable
+	 * <LI>If the reference is bind to a method definition, then return the return type of the method
+	 * <LI>Otherwise return null</OL>
+	 * 
+	 * <p>Note: Before call this method, the current reference should be resolved before;
+	 * 
+	 * @see NameDefinition getDeclareTypeDefinition()
+	 */
+	public TypeDefinition getResultTypeDefinition() {
+		NameDefinition nameDef = getDefinition();
+		if (nameDef == null) return null;
+		
+		TypeDefinition resultTypeDefinition = null;
+		TypeReference resultTypeReference = null;
+		
+		// Determine the result type reference and its bounded type definition
+		NameDefinitionKind nameDefKind = nameDef.getDefinitionKind();
+		if (nameDefKind == NameDefinitionKind.NDK_TYPE) {
+			if (this.isTypeReference()) resultTypeReference = (TypeReference)this; 
+			resultTypeDefinition = (TypeDefinition)nameDef;
+		} else if (nameDefKind == NameDefinitionKind.NDK_FIELD) {
+			FieldDefinition fieldDef = (FieldDefinition)nameDef;
+			resultTypeReference = fieldDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_VARIABLE || nameDefKind == NameDefinitionKind.NDK_PARAMETER) {
+			VariableDefinition varDef = (VariableDefinition)nameDef;
+			resultTypeReference = varDef.getType();
+			if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+			resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+		} else if (nameDefKind == NameDefinitionKind.NDK_METHOD) {
+			MethodDefinition methodDef = (MethodDefinition)nameDef;
+			if (!methodDef.isConstructor()) {
+				resultTypeReference = methodDef.getReturnType();
+				if (!resultTypeReference.isResolved()) resultTypeReference.resolveBinding();
+				resultTypeDefinition = (TypeDefinition)resultTypeReference.getDefinition();
+			}
+		}
+		// If we can not determine result type definition, we return null
+		if (resultTypeDefinition == null) return null;
+		
+		// Get the type parameters if the type definition have
+		List<TypeParameterDefinition> typeParameterList = null;
+		if (resultTypeDefinition.isDetailedType()) {
+			DetailedTypeDefinition type = (DetailedTypeDefinition)resultTypeDefinition;
+			typeParameterList = type.getTypeParameterList();
+			
+			if (typeParameterList != null) {
+				type.resetFieldTypeBinding(typeParameterList);
+				type.resetMethodReturnTypeAndParameterTypeBinding(typeParameterList);
+			}
+		} else if (resultTypeDefinition.isImportedType()) {
+			ImportedTypeDefinition type = (ImportedTypeDefinition)resultTypeDefinition;
+			typeParameterList = type.getTypeParameterList();
+
+			if (typeParameterList != null) {
+				type.resetFieldTypeBinding(typeParameterList);
+				type.resetMethodReturnTypeAndParameterTypeBinding(typeParameterList);
+			}
+		}
+		// If the type definition have not type parameter, we return it directly
+		if (typeParameterList == null) return resultTypeDefinition;
+		
+		// Check whether there are type arguments when declare the type of the field, variable, method parameter or method return type 
+		List<TypeReference> typeArgumentList = null;
+		if (resultTypeReference != null) {
+			if (resultTypeReference.isParameterizedType()) {
+				ParameterizedTypeReference type = (ParameterizedTypeReference)resultTypeReference;
+				typeArgumentList = type.getArgumentList();
+			}
+		}
+		
+		if (typeArgumentList == null) {
+			// There no type argument in the type reference, then all type parameter are instantiated with Object
+			// All type parameters instantiate to Object
+			SystemScope rootScope = getRootScope();
+			NameDefinition rootObject = rootScope.getRootObjectDefinition();
+			TypeReference objectReference = new TypeReference(SystemScope.ROOT_OBJECT_NAME, null, rootScope);
+			objectReference.bindTo(rootObject);
+			for (TypeParameterDefinition typePara : typeParameterList) typePara.setCurrentValue(objectReference);
+		} else {
+			if (typeParameterList.size() != typeArgumentList.size()) {
+				throw new AssertionError("There are different number of type parameter in definition " + resultTypeDefinition.getFullQualifiedName() + ", and reference " + resultTypeReference.getName());
+			}
+			for (int index = 0; index < typeParameterList.size(); index++) {
+				TypeParameterDefinition typePara = typeParameterList.get(index);
+				typePara.setCurrentValue(typeArgumentList.get(index));
+			}
+		}
+		
+		return resultTypeDefinition;
 	}
 	
 	/**
@@ -169,11 +302,24 @@ public class NameReference implements Comparable<NameReference> {
 		return result;
 	}
 	
-
+	/**
+	 * Return sub-reference in a name reference
+	 */
+	public List<NameReference> getSubReferenceList() {
+		return new ArrayList<NameReference>();
+	}
+	
 	/**
 	 * Test whether the reference is a literal
 	 */
 	public boolean isLiteralReference() {
+		return false;
+	}
+	
+	/**
+	 * Test whether the reference is a literal "null"
+	 */
+	public boolean isNullReference() {
 		return false;
 	}
 
@@ -185,7 +331,9 @@ public class NameReference implements Comparable<NameReference> {
 	}
 
 	/**
-	 * Test whether the reference is a type reference
+	 * Test whether the reference is a type reference. 
+	 * <p> Note that an object of NameReference be with kind equals to NRK_TYPE, if it occurs as
+	 * a qualifier of an object of NRGQualifiedName
 	 */
 	public boolean isTypeReference() {
 		return false;
@@ -277,5 +425,12 @@ public class NameReference implements Comparable<NameReference> {
 	public String bindedDefinitionToString() {
 		if (definition == null) return kind.id + " Reference [" + name + "] has not been resolved!";
 		else return kind.id + " Reference [" + name + "] is binded to: [" + definition.getUniqueId() + "]";
+	}
+	
+	public String toSimpleString() {
+		int lineIndex = name.indexOf('\n');
+		if (lineIndex < 0 || lineIndex > 64) lineIndex = 64;
+		if (lineIndex > name.length()) return name;
+		return name.substring(0, lineIndex);
 	}
 }

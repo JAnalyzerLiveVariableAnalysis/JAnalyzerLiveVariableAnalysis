@@ -46,6 +46,13 @@ public abstract class TypeDefinition extends NameDefinition {
 	}
 
 	/**
+	 * Test if the type is an interface. 
+	 */
+	public boolean isAnonymous() {
+		return false;
+	}
+
+	/**
 	 * Set the type to be an interface or not
 	 */
 	public void setInterface(boolean isInterface) {
@@ -71,6 +78,13 @@ public abstract class TypeDefinition extends NameDefinition {
 	 */
 	public boolean isPublic() {
 		return true;
+	}
+
+	/**
+	 * Test if the type is primitive type 
+	 */
+	public boolean isPrimitive() {
+		return false;
 	}
 
 	/**

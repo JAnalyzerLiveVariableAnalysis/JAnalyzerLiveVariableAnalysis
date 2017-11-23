@@ -17,18 +17,19 @@ import org.eclipse.jdt.core.dom.WhileStatement;
  * @version 1.0
  *
  */
-public class WhileCFGCreator implements StatementCFGCreator {
+public class WhileCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 		
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
 		// 1 Create a conditionNode for the condition expression of the while statement (it is also the entry of the while statement), and add it to
 		//   the currentCFG, then call StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNodetraverse() to traverse the list precedeNodeList, 
 		//   and if the reason of the precedeNode in the list is PPR_SEQUENCE, add an edge <precedeNode, startNode> to the current CFG, and remove 
 		//   precedeNode from the list to form a new precedeNodeList
 		WhileStatement whileStatement = (WhileStatement)astNode;
-		ExecutionPoint conditionNode = ExecutionPointFactory.createPredicate(whileStatement);
+		ExecutionPoint conditionNode = factory.createPredicate(whileStatement);
 		currentCFG.addNode(conditionNode);
 		precedeNodeList = StatementCFGCreatorHelper.generateEdgeForSequentPrecedeNode(currentCFG, precedeNodeList, conditionNode);
 		
@@ -41,7 +42,7 @@ public class WhileCFGCreator implements StatementCFGCreator {
 		Statement loopBody = whileStatement.getBody();
 		if (loopBody != null) {
 			StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(loopBody);
-			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList);
+			loopBodyPrecedeNodeList = creator.create(currentCFG, loopBody, loopPrecedeNodeList, null);
 		} else {
 			// if the body of the loop is null, then the precede node of the succeed node should still be conditionNode
 			loopBodyPrecedeNodeList = loopPrecedeNodeList;		
@@ -49,7 +50,7 @@ public class WhileCFGCreator implements StatementCFGCreator {
 		
 		
 		// 4 Create a virtual end node endNode for the while statement, add it to currentCFG, and add edge <conditionNode, endNode> to currentCFG
-		ExecutionPoint endNode = ExecutionPointFactory.createVirtualEnd(whileStatement);
+		ExecutionPoint endNode = factory.createVirtualEnd(whileStatement);
 		currentCFG.addNode(endNode);
 		currentCFG.addEdge(new CFGEdge(conditionNode, endNode, CFGEdge.LABEL_FALSE));
 		
@@ -62,9 +63,9 @@ public class WhileCFGCreator implements StatementCFGCreator {
 			String label = loopBodyPrecedeNode.getLabel();
 			if (reason == PossiblePrecedeReasonType.PPR_SEQUENCE) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, label));
-			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && label == null) {
+			} else if (reason == PossiblePrecedeReasonType.PPR_BREAK && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), endNode, null));
-			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && label == null) {
+			} else if (reason == PossiblePrecedeReasonType.PPR_CONTINUE && StatementCFGCreatorHelper.needAddEdgeByMatchLabel(label, nodeLabel)) {
 				currentCFG.addEdge(new CFGEdge(loopBodyPrecedeNode.getNode(), conditionNode, null));
 			} else precedeNodeList.add(loopBodyPrecedeNode);
 		}

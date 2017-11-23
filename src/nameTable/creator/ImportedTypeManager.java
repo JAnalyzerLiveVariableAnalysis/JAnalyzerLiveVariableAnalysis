@@ -37,6 +37,7 @@ import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.CompilationUnitScope;
 import nameTable.nameScope.NameScope;
 import nameTable.nameScope.SystemScope;
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeFile;
 import sourceCodeAST.SourceCodeLocation;
 
@@ -65,7 +66,7 @@ import sourceCodeAST.SourceCodeLocation;
  */
 public class ImportedTypeManager {
 	private static TypeASTVisitor typeVisitor = new TypeASTVisitor(null, null);
-	
+
 	/**
 	 * Bind imports in all compilation units to its type definition
 	 */
@@ -172,7 +173,7 @@ public class ImportedTypeManager {
 				SourceCodeFile codeFile = new SourceCodeFile(file);
 				if (codeFile.hasCreatedAST()) {
 					CompilationUnit root = codeFile.getASTRoot();
-					CompilationUnitFile currentUnitFile = new CompilationUnitFile(fileName, root);
+					CompilationUnitRecorder currentUnitFile = new CompilationUnitRecorder(fileName, root);
 					scanCurrentCompilationUnit(currentUnitFile, systemScope);
 					codeFile.releaseAST();
 					codeFile.releaseFileContent();
@@ -188,7 +189,7 @@ public class ImportedTypeManager {
 	 * Scan an external file as a compilation unit. However, all imported types are defined in the system scope directly. 
 	 * We do not create any compilation unit scope for the given external file. 
 	 */
-	static void scanCurrentCompilationUnit(CompilationUnitFile currentUnitFile, SystemScope currentScope) {
+	static void scanCurrentCompilationUnit(CompilationUnitRecorder currentUnitFile, SystemScope currentScope) {
 		CompilationUnit node = currentUnitFile.root; 
 		// 1. Process the package declaration in the file, we only extract the name of the package, do not define any package definition
 		//   in the system scope
@@ -218,7 +219,7 @@ public class ImportedTypeManager {
 	 * regard imported types as a name scope of the name table of the source code file set even if implements the interface NameScope. 
 	 */
 	@SuppressWarnings("unchecked")
-	static void scan(CompilationUnitFile currentUnitFile, String qualifier, TypeDeclaration node, NameScope currentScope) {
+	static void scan(CompilationUnitRecorder currentUnitFile, String qualifier, TypeDeclaration node, NameScope currentScope) {
 		// Create a type definition for the node
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
@@ -291,7 +292,7 @@ public class ImportedTypeManager {
 	 * Scan an enumeration declaration in the given external file 
 	 */
 	@SuppressWarnings("unchecked")
-	static void scan(CompilationUnitFile currentUnitFile, String qualifier, EnumDeclaration node, NameScope currentScope) {
+	static void scan(CompilationUnitRecorder currentUnitFile, String qualifier, EnumDeclaration node, NameScope currentScope) {
 		// Create a type definition for the node
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
@@ -323,7 +324,7 @@ public class ImportedTypeManager {
 	 * Scan a field declaration of an imported type in the given external file 
 	 */
 	@SuppressWarnings("unchecked")
-	static void scan(CompilationUnitFile currentUnitFile, String qualifier, FieldDeclaration node, NameScope currentScope) {
+	static void scan(CompilationUnitRecorder currentUnitFile, String qualifier, FieldDeclaration node, NameScope currentScope) {
 		// Get the type reference for the variable declaration
 		Type type = node.getType();
 		typeVisitor.reset(currentUnitFile, currentScope);
@@ -345,24 +346,25 @@ public class ImportedTypeManager {
 	 * Scan a method declaration of an imported type in the given external file 
 	 */
 	@SuppressWarnings("unchecked")
-	static void scan(CompilationUnitFile currentUnitFile, String qualifier, MethodDeclaration node, NameScope currentScope) {
-		// Create type reference for the return type
-		Type returnType = node.getReturnType2();
-		TypeReference returnTypeRef = null;
-		if (returnType != null) {
-			typeVisitor.reset(currentUnitFile, currentScope);
-			returnType.accept(typeVisitor);
-			returnTypeRef = typeVisitor.getResult();
-			int dimension = returnTypeRef.getDimension() + node.getExtraDimensions();
-			returnTypeRef.setDimension(dimension);
-		} // else is a constructor 
-		
+	static void scan(CompilationUnitRecorder currentUnitFile, String qualifier, MethodDeclaration node, NameScope currentScope) {
 		// Create method definition for the node
 		String methodName = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? methodName : qualifier + NameReferenceLabel.NAME_QUALIFIER + methodName;
 		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, currentUnitFile.root, currentUnitFile.unitName);
 		SourceCodeLocation endLocation = SourceCodeLocation.getEndLocation(node, currentUnitFile.root, currentUnitFile.unitName);
 		MethodDefinition methodDef = new MethodDefinition(methodName, fullQualifiedName, location, currentScope, endLocation);
+
+		// Create type reference for the return type
+		Type returnType = node.getReturnType2();
+		TypeReference returnTypeRef = null;
+		if (returnType != null) {
+			typeVisitor.reset(currentUnitFile, methodDef);
+			returnType.accept(typeVisitor);
+			returnTypeRef = typeVisitor.getResult();
+			int dimension = returnTypeRef.getDimension() + node.getExtraDimensions();
+			returnTypeRef.setDimension(dimension);
+		} // else is a constructor 
+		
 		methodDef.setReturnType(returnTypeRef);
 		methodDef.setModifierFlag(node.getModifiers());
 		methodDef.setConstructor(node.isConstructor());
@@ -396,7 +398,7 @@ public class ImportedTypeManager {
 	/**
 	 * Scan a enum constant declaration of an imported type in the given external file 
 	 */
-	static void scan(CompilationUnitFile unitFile, String qualifier, EnumConstantDeclaration node, NameScope currentScope) {
+	static void scan(CompilationUnitRecorder unitFile, String qualifier, EnumConstantDeclaration node, NameScope currentScope) {
 		String name = node.getName().getFullyQualifiedName();
 		String fullQualifiedName = (qualifier == null) ? name : qualifier + NameReferenceLabel.NAME_QUALIFIER + name;
 		SourceCodeLocation location = SourceCodeLocation.getStartLocation(node, unitFile.root, unitFile.unitName);
@@ -408,7 +410,7 @@ public class ImportedTypeManager {
 	/**
 	 * Define a parameter in a SingleVariableDeclaration to the scope given by the parameter currentScope
 	 */
-	static void defineParameber(CompilationUnitFile currentUnitFile, SingleVariableDeclaration node, NameScope currentScope) {
+	static void defineParameber(CompilationUnitRecorder currentUnitFile, SingleVariableDeclaration node, NameScope currentScope) {
 		Type type = node.getType();
 		typeVisitor.reset(currentUnitFile, currentScope);
 		type.accept(typeVisitor);
@@ -432,7 +434,7 @@ public class ImportedTypeManager {
 	 * Because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 	 * we should copy the type reference for the variable definition of the node.
 	 */
-	static void defineField(CompilationUnitFile currentUnitFile, String qualifier, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope, int modifierFlag) {
+	static void defineField(CompilationUnitRecorder currentUnitFile, String qualifier, VariableDeclaration node, TypeReference varTypeRef, NameScope currentScope, int modifierFlag) {
 		// And because the dimension of the node may be different from the other variables declared in the same variableDeclaration,
 		// we should copy the type reference for the variable definition of the node.
 		TypeReference typeRef = null;

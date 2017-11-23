@@ -32,14 +32,15 @@ public class NRGInfixExpression extends NameReferenceGroup {
 	public boolean resolveBinding() {
 		if (definition != null) return true;
 
-		if (subreferences != null) 
+		if (subreferences != null) {
 			for (NameReference reference : subreferences) reference.resolveBinding();
+		} else return false;
 		
 		NameReference firstRef = null;
 		NameReference secondRef = null;
 		if (subreferences.size() > 0) firstRef = subreferences.get(0);
 		if (subreferences.size() > 1) secondRef = subreferences.get(1);
-
+		
 		if (isArithematicOperator()) {
 			if (firstRef != null && secondRef != null) {
 				TypeDefinition firstType = firstRef.getResultTypeDefinition();

@@ -27,6 +27,7 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.UnionType;
 import org.eclipse.jdt.core.dom.WildcardType;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -44,17 +45,17 @@ public class TypeASTVisitor extends ASTVisitor {
 	private int dimension = 0;				// Possible dimension number of the type
 	
 	private NameScope currentScope = null;
-	private CompilationUnitFile unitFile = null;
+	private CompilationUnitRecorder unitFile = null;
 	
 	private SourceCodeLocation resultLocation = null;
 	private TypeReference result = null;
 	
-	public TypeASTVisitor(CompilationUnitFile unitFile, NameScope currentScope) {
+	public TypeASTVisitor(CompilationUnitRecorder unitFile, NameScope currentScope) {
 		this.unitFile = unitFile;
 		this.currentScope = currentScope;
 	}
 	
-	public void reset(CompilationUnitFile unitFile, NameScope currentScope) {
+	public void reset(CompilationUnitRecorder unitFile, NameScope currentScope) {
 		this.unitFile = unitFile;
 		this.currentScope = currentScope;
 

@@ -10,8 +10,6 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
-import analyzer.dataTable.DataTableManager;
-import analyzer.dataTable.DataTableUtil;
 import graph.basic.GraphNode;
 import graph.cfg.ControlFlowGraph;
 import graph.cfg.ExecutionPoint;
@@ -25,7 +23,6 @@ import nameTable.filter.NameDefinitionKindFilter;
 import nameTable.filter.NameDefinitionNameFilter;
 import nameTable.filter.NameTableFilter;
 import nameTable.nameDefinition.DetailedTypeDefinition;
-import nameTable.nameDefinition.FieldDefinition;
 import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
@@ -36,7 +33,6 @@ import nameTable.nameScope.SystemScope;
 import nameTable.visitor.NameDefinitionFinder;
 import nameTable.visitor.NameDefinitionPrinter;
 import nameTable.visitor.NameDefinitionVisitor;
-import nameTable.visitor.NameReferencePrinter;
 import nameTable.visitor.NameScopeVisitor;
 import sourceCodeAST.SourceCodeFileSet;
 import sourceCodeAST.SourceCodeLocation;
@@ -58,7 +54,7 @@ public class TestNameTable {
 		
 		String[] paths = {"C:\\QualitasPacking\\recent\\eclipse_SDK\\eclipse_SDK-4.3\\", "C:\\QualitasPacking\\recent\\jfreechart\\jfreechart-1.0.13\\", 
 							rootPath + "ZxcWork\\JAnalyzer\\src\\", rootPath + "ZxcTools\\EclipseSource\\org\\", rootPath + "ZxcTemp\\testcase\\",
-							rootPath + "ZxcWork\\ToolKit\\src\\sourceCodeAsTestCase\\CNExample.java", rootPath + "ZxcDeveloping\\OOPAndJavaExamples\\automata\\src\\", 
+							rootPath + "ZxcWork\\ToolKit\\src\\sourceCodeAsTestCase\\TestGenericType.java", rootPath + "ZxcDeveloping\\OOPAndJavaExamples\\automata\\src\\", 
 							rootPath + "ZxcProject\\AspectViz\\ZxcWork\\SortAnimator4\\", rootPath + "ZxcTools\\JDKSource\\", 
 							rootPath + "ZxcCourse\\JavaProgramming\\JHotDraw5.2\\sources\\", rootPath + "ZxcWork\\FaultLocalization\\src\\", 
 							rootPath + "ZxcTools\\ArgoUml\\", rootPath + "ZxcTools\\jEdit_5_1_0\\", 
@@ -66,7 +62,7 @@ public class TestNameTable {
 							rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\", rootPath + "ZxcTools\\apache_ant_1_9_3\\src\\main\\org\\apache\\tools\\ant\\",
 		};
 		
-		String path = paths[2];
+		String path = paths[5];
 		String result = rootPath + "ZxcWork\\ProgramAnalysis\\data\\result.txt";
 
 		PrintWriter writer = new PrintWriter(System.out);
@@ -82,6 +78,7 @@ public class TestNameTable {
 			String info = rootPath + "ZxcWork\\ProgramAnalysis\\data\\debug.txt";
 			output = new PrintWriter(new FileOutputStream(new File(info)));
 			Debug.setWriter(output);
+			Debug.setScreenOn();
 		} catch (Exception exc) {
 			exc.printStackTrace();
 		}
@@ -109,7 +106,7 @@ public class TestNameTable {
 	public static void printAllNames(String path, String resultFile) throws IOException {
 		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameTableCreator(parser);
-		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+		String[] fileNameArray = {"E:\\ZxcWork\\ToolKit\\data\\javalang.txt", "E:\\ZxcWork\\ToolKit\\data\\javautil.txt", "E:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
 
 		Debug.setStart("Begin creating system, path = " + path);
 		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
@@ -147,7 +144,7 @@ public class TestNameTable {
 	public static void printAllDefinitions(String path, String resultFile) throws IOException {
 		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
-		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+		String[] fileNameArray = {"E:\\ZxcWork\\ToolKit\\data\\javalang.txt", "E:\\ZxcWork\\ToolKit\\data\\javautil.txt", "E:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
 
 		Debug.setStart("Begin creating system, path = " + path);
 		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
@@ -178,7 +175,7 @@ public class TestNameTable {
 		NameTableFilter filter = new DetailedTypeDefinitionFilter() {
 			public boolean accept(NameDefinition definition) {
 				if (definition.isDetailedType() && 
-						definition.getSimpleName().equals("NameDefinition")) return true;
+						definition.getSimpleName().equals("TestGenericType")) return true;
 				return false;
 			}
 		};
@@ -303,15 +300,14 @@ public class TestNameTable {
 	public static void printReferenceBindToDefinition(String path, String resultFile) throws IOException {
 		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		NameTableCreator creator = new NameDefinitionCreator(parser);
-		String[] fileNameArray = {"C:\\ZxcWork\\ToolKit\\data\\javalang.txt", "C:\\ZxcWork\\ToolKit\\data\\javautil.txt", "C:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+		String[] fileNameArray = {"E:\\ZxcWork\\ToolKit\\data\\javalang.txt", "E:\\ZxcWork\\ToolKit\\data\\javautil.txt", "E:\\ZxcWork\\ToolKit\\data\\javaio.txt", }; 
 
 		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
 		
 		PrintWriter writer = new PrintWriter(new File(resultFile));
 		writer.println("CompilationUnit\tType\tMethod\tReference\tLocation\tDefinition"); 
 		
-		NameDefinitionFinder finder = new NameDefinitionFinder(new DetailedTypeDefinitionFilter(
-				new NameDefinitionNameFilter("NameDefinition")));
+		NameDefinitionFinder finder = new NameDefinitionFinder();
 		manager.accept(finder);
 		NameDefinition definition = finder.getResult();
 		if (definition == null) return;
@@ -343,10 +339,13 @@ public class TestNameTable {
 		}
 		
 		finder = new NameDefinitionFinder(new NameDefinitionNameFilter(
-				new NameDefinitionKindFilter(NameDefinitionKind.NDK_METHOD), "resolveBinding"));
+				new NameDefinitionKindFilter(NameDefinitionKind.NDK_METHOD), "main"));
 		manager.accept(finder);
 		definition = finder.getResult();
-		if (definition == null) return;
+		if (definition == null) {
+			writer.close();
+			return;
+		}
 		
 		referenceList = referenceCreator.createReferencesBindedToDefinition(definition);
 		for (NameReference reference : referenceList) {
@@ -402,6 +401,8 @@ public class TestNameTable {
 				}
 			}
 		}
+		
+		if (maxMethod == null) return;
 		
 		System.out.println("Find the maximal method " + maxMethod.getFullQualifiedName());
 		CompilationUnitScope unitScope = manager.getEnclosingCompilationUnitScope(maxMethod);

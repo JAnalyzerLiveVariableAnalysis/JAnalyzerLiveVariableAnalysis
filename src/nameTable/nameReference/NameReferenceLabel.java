@@ -40,7 +40,7 @@ public final class NameReferenceLabel {
 				name.equals(TYPE_BYTE) || name.equals(TYPE_DOUBLE) || 
 				name.equals(TYPE_INT) || name.equals(TYPE_LONG) || 
 				name.equals(TYPE_FLOAT) || name.equals(TYPE_SHORT) ||
-				name.equals(TYPE_VOID) || name.equals(TYPE_STRING)) return true;
+				name.equals(TYPE_VOID)) return true;
 		else return false;
 		
 	}

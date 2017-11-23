@@ -4,6 +4,7 @@ import graph.basic.AbstractGraph;
 import graph.basic.GraphEdge;
 import graph.basic.GraphNode;
 import graph.basic.GraphUtil;
+import graph.cfg.creator.ExecutionPointFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -11,7 +12,7 @@ import java.io.PrintWriter;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
-import sourceCodeAST.SourceCodeLocation;
+import sourceCodeAST.CompilationUnitRecorder;
 
 /**
  * The class of the control flow graph. 
@@ -29,8 +30,9 @@ public class ControlFlowGraph extends AbstractGraph implements CFGNode {
 	private String label = null;
 	private String description = null;
 	
-	private CompilationUnit root = null;		// The AST node of the compilation unit 
-	private String fullFileName = null;			// The full file name of the compilation unit. Node that it is the file name in the SourceCodeLocation of the CFG node 
+	CompilationUnitRecorder unitRecorder = null;// The compilation unit message of the CFG
+	ExecutionPointFactory factory = null;		// The factor for creating execution point
+	
 	private MethodDeclaration method = null;	// The AST node of the method corresponding to the CFG
 	private String methodName = null;			// The name of the method corresponding to the CFG
 	private String className = null;			// The class name of the class contains the method
@@ -51,9 +53,32 @@ public class ControlFlowGraph extends AbstractGraph implements CFGNode {
 	 * @param fullFileName : the file name of the source file
 	 * @param root : the AST root of the source file
 	 */
-	public void setSourceFile(String fullFileName, CompilationUnit root) {
-		this.fullFileName = fullFileName;
-		this.root = root;
+	public void setCompilationUnitRecorder(String fullFileName, CompilationUnit root) {
+		unitRecorder = new CompilationUnitRecorder(fullFileName, root);
+	}
+	
+	public void setCompilationUnitRecorder(CompilationUnitRecorder recorder) {
+		this.unitRecorder = recorder;
+	}
+	
+	public CompilationUnitRecorder getCompilationUnitRecorder() {
+		return unitRecorder;
+	}
+	
+	public CompilationUnit getCompilationUnitRoot() {
+		return unitRecorder.root;
+	}
+	
+	public String getFileUnitName() {
+		return unitRecorder.unitName;
+	}
+
+	public void setExecutionPointFactory(ExecutionPointFactory factory) {
+		this.factory = factory;
+	}
+	
+	public ExecutionPointFactory getExecutionPointFactory() {
+		return factory;
 	}
 	
 	/**
@@ -127,10 +152,6 @@ public class ControlFlowGraph extends AbstractGraph implements CFGNode {
 		return className;
 	}
 
-	public String getFullFileName() {
-		return fullFileName;
-	}
-
 	public void setLabel(String label) {
 		this.label = label;
 	}
@@ -139,14 +160,6 @@ public class ControlFlowGraph extends AbstractGraph implements CFGNode {
 		this.description = description;
 	}
 
-	public SourceCodeLocation getStartPosition() {
-		int position = method.getStartPosition();
-		int lineNumber = root.getLineNumber(position);
-		int column = root.getColumnNumber(position);
-		
-		return new SourceCodeLocation(lineNumber, column, fullFileName);
-	}
-	
 	/**
 	 * Test if the node is a virtual node
 	 */
@@ -224,7 +237,7 @@ public class ControlFlowGraph extends AbstractGraph implements CFGNode {
 			label = label.replace('\"', '\'');
 			label = label.replace("\r", "");
 			label = label.replace("\n", "");
-			output.println("    " + nodeId + "[label = \"" + label + "\", shape = " + nodeShape + "]");
+			output.println("    " + nodeId + "[label = \"[" + node.getId() + "]" + label + "\", shape = " + nodeShape + "]");
 		}
 		for (GraphEdge edge : edges) {
 			String label = edge.getLabel();

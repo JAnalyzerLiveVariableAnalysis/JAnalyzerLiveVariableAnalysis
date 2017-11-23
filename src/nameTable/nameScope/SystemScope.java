@@ -38,6 +38,7 @@ public class SystemScope implements NameScope {
 	private List<NameReference> referenceList = null;				// The references occurs in the system scope. Generally, it will be null!
 	
 	private List<DetailedTypeDefinition> allDetailedTypeList = null;	// A buffer to store a list of all detailed type definition.
+	private ImportedTypeDefinition rootObject = null;
 	
 	@Override
 	public void define(NameDefinition nameDef) throws IllegalNameDefinition {
@@ -47,12 +48,18 @@ public class SystemScope implements NameScope {
 		} else if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_TYPE) {
 			if (importedTypeList == null) importedTypeList = new ArrayList<ImportedTypeDefinition>();
 			importedTypeList.add((ImportedTypeDefinition)nameDef);
+			if (nameDef.getSimpleName().equals(ROOT_OBJECT_NAME) && nameDef.getFullQualifiedName().equals(SYSTEM_PACKAGE_NAME + "." + ROOT_OBJECT_NAME)) 
+				rootObject = (ImportedTypeDefinition)nameDef;
 		} else if (nameDef.getDefinitionKind() == NameDefinitionKind.NDK_STATIC_MEMBER) {
 			if (importedStaticMemberList == null) importedStaticMemberList = new ArrayList<ImportedStaticMemberDefinition>();
 			importedStaticMemberList.add((ImportedStaticMemberDefinition)nameDef);
 		}
 	}
 
+	public ImportedTypeDefinition getRootObjectDefinition() {
+		return rootObject;
+	}
+	
 	@Override
 	public NameScope getEnclosingScope() {
 		return null;

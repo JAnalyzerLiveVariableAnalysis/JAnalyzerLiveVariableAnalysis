@@ -5,8 +5,6 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-import softwareMeasurement.measure.MeasureObjectKind;
-import softwareMeasurement.measure.SoftwareMeasure;
 import util.Debug;
 
 /**
@@ -42,69 +40,6 @@ public class QualitasPathsManager {
 	public static String getSystemStartPath(String systemName) {
 		return getSystemStartPath(systemName, defaultRootPath);
 	}
-	
-	public static String getMeasureResultPath(MeasureObjectKind kind, String systemName, String resultPath, boolean groupBySystem) {
-		String result = null;
-		if (groupBySystem) result = resultPath + systemName + pathSeparator;
-		else result = resultPath;
-
-		if (kind == MeasureObjectKind.MOK_SYSTEM) {
-			if (!groupBySystem) result = result + "system" + pathSeparator; 
-		} else if (kind == MeasureObjectKind.MOK_PACKAGE) {
-			result = result + "package" + pathSeparator; 
-		} else if (kind == MeasureObjectKind.MOK_UNIT) {
-			result = result + "unit" + pathSeparator; 
-		} else if (kind == MeasureObjectKind.MOK_CLASS) {
-			result = result + "class" + pathSeparator; 
-		} else if (kind == MeasureObjectKind.MOK_METHOD) {
-			result = result + "method" + pathSeparator; 
-		} 
-		
-		File path = new File(result);
-		if (!path.exists()) path.mkdirs();
-		return result;
-	}
-
-	public static String getMeasureResultPath(MeasureObjectKind kind, String systemName, boolean groupBySystem) {
-		return getMeasureResultPath(kind, systemName, defaultResultPath, groupBySystem);
-	}
-		
-	public static String getSystemMeasureResultFile(String systemName, String resultPath, boolean groupBySystem) {
-		return getMeasureResultPath(MeasureObjectKind.MOK_SYSTEM, systemName, resultPath, groupBySystem) + systemName + ".txt";
-	}
-
-	public static String getSystemMeasureResultFile(String systemName, boolean groupBySystem) {
-		return getSystemMeasureResultFile(systemName, defaultResultPath, groupBySystem);
-	}
-
-	public static String getMeasureResultFile(MeasureObjectKind kind, String systemName, String version, String resultPath, boolean groupBySystem) {
-		return getMeasureResultPath(kind, systemName, resultPath, groupBySystem) + version + ".txt";
-	}
-
-	public static String getMeasureResultFile(MeasureObjectKind kind, String systemName, String version, boolean groupBySystem) {
-		return getMeasureResultFile(kind, systemName, version, defaultResultPath, groupBySystem);
-	}
-	
-	public static String getMeasureIndicatorFile(MeasureObjectKind kind, String systemName, String versionOne, String versionTwo, String resultPath) {
-		String indicatorPath = getMeasureResultPath(kind, systemName, resultPath, true) + "indicator" + pathSeparator;
-		File path = new File(indicatorPath);
-		if (!path.exists()) path.mkdirs();
-		
-		return  indicatorPath + versionOne + "vs" + versionTwo + ".txt";
-	}
-	
-	public static String getMeasureIndicatorFile(MeasureObjectKind kind, String systemName, String versionOne, String versionTwo) {
-		return getMeasureIndicatorFile(kind, systemName, versionOne, versionTwo, defaultResultPath);
-	}
-
-	public static String getMetricHistoryResultFile(MeasureObjectKind kind, String systemName, String mainVersion, SoftwareMeasure measure, String resultPath) {
-		return getMeasureResultPath(kind, systemName, resultPath, true) + mainVersion + "-" + measure.getIdentifier() + "-hist.txt";
-	}
-
-	public static String getMetricHistoryResultFile(MeasureObjectKind kind, String systemName, String mainVersion, SoftwareMeasure measure) {
-		return getMetricHistoryResultFile(kind, systemName, mainVersion, measure, defaultResultPath);
-	}
-	
 	
 	public static String getDebugFile() {
 		return defaultDebugPath + "debug.txt";

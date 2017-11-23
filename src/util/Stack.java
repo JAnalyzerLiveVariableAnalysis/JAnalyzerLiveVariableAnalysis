@@ -34,6 +34,7 @@ public class Stack<T> {
 		currentIndex = currentIndex - 1;
 	}
 	
+	@SuppressWarnings("null")
 	public T getTop() {
 		if (currentIndex < 1) return null;
 		return data.get(currentIndex - 1);

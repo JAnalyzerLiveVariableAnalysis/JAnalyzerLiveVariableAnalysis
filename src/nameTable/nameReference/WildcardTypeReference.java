@@ -1,5 +1,8 @@
 package nameTable.nameReference;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import nameTable.nameScope.NameScope;
 import sourceCodeAST.SourceCodeLocation;
 
@@ -45,6 +48,16 @@ public class WildcardTypeReference extends TypeReference {
 	
 	public boolean isUpperBound() {
 		return isUpperBound;
+	}
+
+	/**
+	 * Return sub-reference in a name reference
+	 */
+	@Override
+	public List<NameReference> getSubReferenceList() {
+		List<NameReference> result = new ArrayList<NameReference>();
+		if (bound != null) result.add(bound);
+		return result;
 	}
 	
 	@Override

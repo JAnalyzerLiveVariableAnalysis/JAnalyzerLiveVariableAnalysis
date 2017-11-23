@@ -1,15 +1,16 @@
 package nameTable;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import sourceCodeAST.SourceCodeFile;
 import sourceCodeAST.SourceCodeFileSet;
 import sourceCodeAST.SourceCodeLocation;
+import nameTable.creator.NameTableCreator;
 import nameTable.filter.NameDefinitionKindFilter;
 import nameTable.filter.NameDefinitionLocationFilter;
 import nameTable.filter.NameDefinitionNameFilter;
-import nameTable.filter.NameDefinitionScopeFilter;
 import nameTable.filter.NameDefinitionUniqueIdFilter;
 import nameTable.filter.NameScopeFilter;
 import nameTable.filter.NameScopeLocationFilter;
@@ -54,6 +55,49 @@ import nameTable.visitor.NameTableVisitor;
 public class NameTableManager {
 	private SourceCodeFileSet codeFileSet = null;
 	private SystemScope systemScope = null;
+
+	public static NameTableManager createNameTableManager(String projectRootPath) {
+		SourceCodeFileSet parser = new SourceCodeFileSet(projectRootPath);
+		NameTableCreator creator = new NameTableCreator(parser);
+		String root = "C:\\";
+		String[] fileNameArray = {root+"ZxcWork\\ToolKit\\data\\javalang.txt", root+"ZxcWork\\ToolKit\\data\\javautil.txt", root+"ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+
+		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
+		if (creator.hasError()) {
+			System.out.println("There are " + creator.getErrorUnitNumber() + " error unit files:");
+			creator.printErrorUnitList(new PrintWriter(System.out));
+			System.out.println();
+		}
+		return manager;
+	}
+	
+	public static NameTableManager createNameTableManager(String projectRootPath, PrintWriter errorReportWriter) {
+		SourceCodeFileSet parser = new SourceCodeFileSet(projectRootPath);
+		NameTableCreator creator = new NameTableCreator(parser);
+		String root = "C:\\";
+		String[] fileNameArray = {root+"ZxcWork\\ToolKit\\data\\javalang.txt", root+"ZxcWork\\ToolKit\\data\\javautil.txt", root+"ZxcWork\\ToolKit\\data\\javaio.txt", }; 
+
+		NameTableManager manager = creator.createNameTableManager(errorReportWriter, fileNameArray);
+		if (creator.hasError()) {
+			errorReportWriter.println("There are " + creator.getErrorUnitNumber() + " error unit files:");
+			creator.printErrorUnitList(errorReportWriter);
+			errorReportWriter.println();
+		}
+		return manager;
+	}
+
+	public static NameTableManager createNameTableManager(String projectRootPath, PrintWriter errorReportWriter, String[] externalLibraryHeadFileArray) {
+		SourceCodeFileSet parser = new SourceCodeFileSet(projectRootPath);
+		NameTableCreator creator = new NameTableCreator(parser);
+
+		NameTableManager manager = creator.createNameTableManager(errorReportWriter, externalLibraryHeadFileArray);
+		if (creator.hasError()) {
+			errorReportWriter.println("There are " + creator.getErrorUnitNumber() + " error unit files:");
+			creator.printErrorUnitList(errorReportWriter);
+			errorReportWriter.println();
+		}
+		return manager;
+	}
 
 	/**
 	 * The component client should not use this constructor to create an instance of NameTableManager.

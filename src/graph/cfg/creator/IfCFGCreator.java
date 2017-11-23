@@ -17,16 +17,18 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class IfCFGCreator implements StatementCFGCreator {
+public class IfCFGCreator extends StatementCFGCreator {
 
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodelLabel) {
 		
+		ExecutionPointFactory factory = currentCFG.getExecutionPointFactory();
+
 		IfStatement ifStatement = (IfStatement)astNode;
 		
 		// 1.1 Create an execution point for the condition expression in this if statement, and add it to the current CFG
-		ExecutionPoint conditionNode = ExecutionPointFactory.createPredicate(ifStatement);
+		ExecutionPoint conditionNode = factory.createPredicate(ifStatement);
 		currentCFG.addNode(conditionNode);
 		// 1.2 Traverse the list precedeNodeList, if the reason of the precedeNode in the list is PPR_SEQUENCE, 
 		//    add an edge <precedeNode, conditionNode> to the current CFG, and remove precedeNode from the list to form a new precedeNodeList
@@ -40,7 +42,7 @@ public class IfCFGCreator implements StatementCFGCreator {
 		// 3 Create CFG for the then branch of this if statement, and get a new possible precede node list
 		Statement thenStatement = ifStatement.getThenStatement();
 		StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(thenStatement);
-		List<PossiblePrecedeNode> thenPrecedeNodeList = creator.create(currentCFG, thenStatement, ifPrecedeNodeList);
+		List<PossiblePrecedeNode> thenPrecedeNodeList = creator.create(currentCFG, thenStatement, ifPrecedeNodeList, null);
 
 		// 4 Traverse thenPrecedeNodeList, if it has PPR_SEQUENCE node thenPrecedeNode, then create virtual end node endNode for the statement, 
 		//	 and add the edge <thenPrecedeNode, endNode> to currentCFG. Also, we add non PPR_SEQUENCE node to the precedeNodeList in the above 1.2
@@ -48,7 +50,7 @@ public class IfCFGCreator implements StatementCFGCreator {
 		for (PossiblePrecedeNode thenPrecedeNode : thenPrecedeNodeList) {
 			if (thenPrecedeNode.getReason() == PossiblePrecedeReasonType.PPR_SEQUENCE) {
 				if (endNode == null) {
-					endNode = ExecutionPointFactory.createVirtualEnd(ifStatement);
+					endNode = factory.createVirtualEnd(ifStatement);
 					currentCFG.addNode(endNode);
 				}
 				currentCFG.addEdge(new CFGEdge(thenPrecedeNode.getNode(), endNode));
@@ -65,14 +67,14 @@ public class IfCFGCreator implements StatementCFGCreator {
 			
 			// 5.2 Create CFG for the else branch, and get a new possible precede node list elsePrecedeNodeList.
 			creator = StatementCFGCreatorFactory.getCreator(elseStatement);
-			List<PossiblePrecedeNode> elsePrecedeNodeList = creator.create(currentCFG, elseStatement, ifPrecedeNodeList);
+			List<PossiblePrecedeNode> elsePrecedeNodeList = creator.create(currentCFG, elseStatement, ifPrecedeNodeList, null);
 			
 			// 5.3 traverse elsePrecedNodeList, if it has PPR_SEQUENCE node elsePrecedeNode, then add the edge <elsePrecedeNode, endNode> 
 			//     to currentCFG, Also, we add non PPR_SEQUENCE node to the precedeNodeList in the above 1.2
 			for (PossiblePrecedeNode elsePrecedeNode : elsePrecedeNodeList) {
 				if (elsePrecedeNode.getReason() == PossiblePrecedeReasonType.PPR_SEQUENCE) {
 					if (endNode == null) {
-						endNode = ExecutionPointFactory.createVirtualEnd(ifStatement);
+						endNode = factory.createVirtualEnd(ifStatement);
 						currentCFG.addNode(endNode);
 					}
 					currentCFG.addEdge(new CFGEdge(elsePrecedeNode.getNode(), endNode));
@@ -81,7 +83,7 @@ public class IfCFGCreator implements StatementCFGCreator {
 		} else {
 			// There is no else branch of the statement, create endNode (if it is null), and add edge <conditionNode, endNode>
 			if (endNode == null) {
-				endNode = ExecutionPointFactory.createVirtualEnd(ifStatement);
+				endNode = factory.createVirtualEnd(ifStatement);
 				currentCFG.addNode(endNode);
 			}
 			currentCFG.addEdge(new CFGEdge(conditionNode, endNode, CFGEdge.LABEL_FALSE));

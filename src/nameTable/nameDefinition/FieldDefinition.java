@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.eclipse.jdt.core.dom.Modifier;
 
+import nameTable.nameReference.NameReference;
 import nameTable.nameReference.ParameterizedTypeReference;
 import nameTable.nameReference.TypeReference;
 import nameTable.nameScope.NameScope;
@@ -24,8 +25,9 @@ import sourceCodeAST.SourceCodeLocation;
  * 		Refactor the class according to the design document
  */
 public class FieldDefinition extends NameDefinition {
-	private TypeReference type = null;		// The type of the field
+	private TypeReference type = null;			// The type of the field
 	private int modifier = 0;					// The modifier flag of the field
+	private NameReference initializer = null;	// The reference of initialize expression 
 
 	public FieldDefinition(String simpleName, String fullQualifiedName, SourceCodeLocation location, NameScope scope) {
 		super(simpleName, fullQualifiedName, location, scope);
@@ -82,14 +84,44 @@ public class FieldDefinition extends NameDefinition {
 	public void setType(TypeReference type) {
 		this.type = type;
 	}
+	
+	/**
+	 * Reset type reference to null if it matches the type parameter in the list!
+	 */
+	public void resetTypeBinding(List<TypeParameterDefinition> typeParameterList) {
+		if (type != null) {
+			for (TypeParameterDefinition typeParameter : typeParameterList) {
+				if (type.getName().equals(typeParameter.getSimpleName())) {
+					type.resetBinding();
+					return;
+				}
+			}
+		}
+	}
+
+	
+	/**
+	 * Set reference of initialize expression of the field 
+	 */
+	public void setInitializer(NameReference initializer) {
+		this.initializer = initializer;
+	}
+	
+	/**
+	 * Get reference of initialize expression of the field 
+	 */
+	public NameReference getInitializer() {
+		return initializer;
+	}
 
 	/**
 	 * Return the package definition object which this detailed type belongs to 
 	 */
-	public DetailedTypeDefinition getEnclosingType() {
+	public TypeDefinition getEnclosingType() {
 		NameScope currentScope = scope;
-		while (currentScope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE) currentScope = currentScope.getEnclosingScope();
-		return (DetailedTypeDefinition)currentScope;
+		while (currentScope.getScopeKind() != NameScopeKind.NSK_DETAILED_TYPE && currentScope.getScopeKind() != NameScopeKind.NSK_IMPORTED_TYPE) 
+			currentScope = currentScope.getEnclosingScope();
+		return (TypeDefinition)currentScope;
 	}
 	
 	/**

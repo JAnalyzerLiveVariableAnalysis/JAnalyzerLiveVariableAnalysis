@@ -14,12 +14,12 @@ import org.eclipse.jdt.core.dom.Statement;
  * @version 1.0
  *
  */
-public class BlockCFGCreator implements StatementCFGCreator {
+public class BlockCFGCreator extends StatementCFGCreator {
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<PossiblePrecedeNode> create(ControlFlowGraph currentCFG,
-			Statement astNode, List<PossiblePrecedeNode> precedeNodeList) {
+			Statement astNode, List<PossiblePrecedeNode> precedeNodeList, String nodeLabel) {
 		
 		Block block = (Block)astNode;
 		// Get the statements in the block. The element type of the list returned by Block.statements() should be Statement
@@ -30,7 +30,7 @@ public class BlockCFGCreator implements StatementCFGCreator {
 		// Create CFG for the statements in the block
 		for (Statement statement : statements) {
 			StatementCFGCreator creator = StatementCFGCreatorFactory.getCreator(statement);
-			precedeNodeList = creator.create(currentCFG, statement, precedeNodeList);
+			precedeNodeList = creator.create(currentCFG, statement, precedeNodeList, null);
 		}
 		
 		return precedeNodeList;

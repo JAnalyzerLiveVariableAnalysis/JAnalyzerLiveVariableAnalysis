@@ -38,6 +38,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 
+import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeLocation;
 
 /**
@@ -341,7 +342,7 @@ public class NameReferenceCreator {
 	 * Create and return all name references for a field declaration node in the give detailed type definition 
 	 */
 	public List<NameReference> createReferences(String unitName, CompilationUnit astRoot, DetailedTypeDefinition detailedType, FieldDeclaration node) {
-		CompilationUnitFile unitFile = new CompilationUnitFile(unitName, astRoot);
+		CompilationUnitRecorder unitFile = new CompilationUnitRecorder(unitName, astRoot);
 		ExpressionReferenceASTVisitor expressionVisitor = new ExpressionReferenceASTVisitor(this, unitFile, detailedType, createLiteralReference);
 		List<NameReference> resultList = new ArrayList<NameReference>();
 

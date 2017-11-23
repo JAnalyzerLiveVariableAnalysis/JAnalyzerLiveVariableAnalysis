@@ -90,6 +90,22 @@ public class MethodReference extends NameReference {
 	}
 	
 	/**
+	 * Return sub-reference in a name reference
+	 */
+	@Override
+	public List<NameReference> getSubReferenceList() {
+		List<NameReference> result = new ArrayList<NameReference>();
+
+		if (typeArgumentList != null) {
+			for (TypeReference typeArgument : typeArgumentList) result.add(typeArgument);
+		}
+		if (argumentList != null) {
+			for (NameReference argument : argumentList) result.add(argument);
+		}
+		return result;
+	}
+
+	/**
 	 * Test whether the reference is a method reference
 	 */
 	@Override
