@@ -56,7 +56,7 @@ public class ReachNameAnalyzer {
 		CompilationUnitRecorder unitRecorder = new CompilationUnitRecorder(sourceFileName, astRoot);
 		
 		// Create a ControFlowGraph object
-		ControlFlowGraph currentCFG = CFGCreator.create(nameTable, method);
+		ControlFlowGraph currentCFG = CFGCreator.create(nameTable, unitRecorder, method);
 		if (currentCFG == null) return null;
 		
 		setReachNameRecorder(currentCFG);

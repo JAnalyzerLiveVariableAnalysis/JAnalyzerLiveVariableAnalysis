@@ -84,7 +84,7 @@ public class TestNameTable2 {
 
 		NameTableManager manager = creator.createNameTableManager(new PrintWriter(System.out), fileNameArray);
 		
-		String typeName = "NameBasedDependenceGraphCreator";
+		String typeName = "ControlFlowGraph";
 		NameDefinitionFinder finder = new NameDefinitionFinder(new DetailedTypeDefinitionFilter(new NameDefinitionNameFilter(typeName)));
 		manager.accept(finder);
 

@@ -1,6 +1,6 @@
-/util/
 /analyzer/
-/sourceCodeAST/
-/nameTable/
 /graph/
 /gui/
+/nameTable/
+/sourceCodeAST/
+/util/

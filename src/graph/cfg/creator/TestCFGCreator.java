@@ -6,10 +6,8 @@ import graph.cfg.ExecutionPoint;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
-import java.util.Scanner;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -35,13 +33,6 @@ public class TestCFGCreator {
 		String path5 = rootPath + "ZxcWork\\ToolKit\\src\\sourceCodeAsTestCase\\RECompiler.java";
 		String path8 = "E:\\ZxcTools\\JDKSource\\";
 
-/*
-		String fileName = "NRGMethodInvocation.java";
-		
-		SourceCodeParser parser = new SourceCodeParser(path3 + fileName);
-		CompilationUnit root = parser.findCompilationUnitByFileSimpleName(fileName);
-*/
-		
 		PrintWriter output = null;
 		PrintWriter writer = null;
 		try {
@@ -62,9 +53,6 @@ public class TestCFGCreator {
 		testMatchASTNode(path3, output);
 		if (writer != null) writer.close();
 		if (output != null) output.close();
-		
-		
-//		testLoadFile();
 	}
 	
 	public static void testMatchASTNode(String path, PrintWriter output) {
@@ -72,26 +60,20 @@ public class TestCFGCreator {
 		SourceCodeFileSet parser = new SourceCodeFileSet(path);
 		for (SourceCodeFile codeFile : parser) {
 			String fileName = parser.getFileUnitName(codeFile);
-			
 			System.out.println("Scan file: " + fileName);
-			if (!fileName.contains("SoftwareStructCreator")) continue; 
-
 			if (!codeFile.hasCreatedAST()) {
 				System.out.println("Can not create AST for code file " + fileName);
 				continue;
 			}
-				
 			CompilationUnit root = codeFile.getASTRoot();
 			CFGCreator creator = new CFGCreator(fileName, root);
 			List<ControlFlowGraph> cfgs = creator.create();
-			
 			for (ControlFlowGraph cfg : cfgs) {
 				try {
 					cfg.simplyWriteToDotFile(output);
 				} catch (Exception exc) {
 					exc.printStackTrace();
 				}
-				
 				List<GraphNode> nodes = cfg.getAllNodes();
 				if (nodes != null) {
 					for (GraphNode node : nodes) {
@@ -99,7 +81,6 @@ public class TestCFGCreator {
 						
 						ASTNode astNode = point.getAstNode();
 						ASTNode matchedNode = creator.matchASTNode(point);
-						
 						if (astNode == matchedNode) {
 							Debug.println("Matched AST node for execution point [" + point.getDescription() + "] at [" + point.getStartLocation() + "]!");
 						} else {
@@ -112,34 +93,10 @@ public class TestCFGCreator {
 					}
 				}
 			}
-			
 			codeFile.releaseAST();
 			codeFile.releaseFileContent();
 		}
-		
 		output.close();
 	}
 	
-	public static void testLoadFile() {
-		File file = new File("E:\\ZxcWork\\ProgramAnalysis\\data\\MethodVerifier15.java");
-		String fileContent = null;
-		
-		try {
-			final Scanner in = new Scanner(file);
-			StringBuilder buffer = new StringBuilder(); 
-			while (in.hasNextLine()) {
-				String line = in.nextLine();
-				Debug.println("Read line: " + line);
-				buffer.append(line + "\r\n");
-			}
-			in.close();
-			fileContent = buffer.toString();
-			
-			Debug.println("File content:");
-			Debug.println(fileContent);
-		} catch (IOException exc) {
-			exc.printStackTrace();
-		}
-	}
-
 }

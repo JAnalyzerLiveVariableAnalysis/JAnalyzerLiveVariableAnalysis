@@ -227,7 +227,6 @@ public class TestCFGCreator {
 		int maxLineNumber = 0;
 		for (NameDefinition definition : methodList) {
 			MethodDefinition method = (MethodDefinition)definition;
-//			if (!method.getFullQualifiedName().contains("main")) continue;
 			if (maxMethod == null) {
 				maxMethod = method;
 				maxLineNumber = maxMethod.getEndLocation().getLineNumber() - maxMethod.getLocation().getLineNumber();
@@ -239,10 +238,8 @@ public class TestCFGCreator {
 				}
 			}
 		}
-		
 		if (maxMethod == null) return;
 		
-		Debug.flush();
 		Debug.setStart("Begin creating CFG for method " + maxMethod.getUniqueId() + ", " + maxLineNumber + " lines...");
 		output.println("ExecutionPointId\tDefinedName\tValue\tNameLocation\tValueLocation");
 		MethodDefinition method = maxMethod;
@@ -327,83 +324,4 @@ public class TestCFGCreator {
 		Debug.time("After Create " + methodList.size() + " CFGs.....");
 	}
 	
-	static boolean compareTwoCFGs(ControlFlowGraph cfg1, ControlFlowGraph cfg2) {
-		if (cfg1 == null && cfg2 != null) return false;
-		if (cfg1 != null && cfg2 == null) return false;
-		if (cfg1 == null && cfg2 == null) return true;
-		
-		List<GraphNode> nodeList1 = cfg1.getAllNodes();
-		List<GraphNode> nodeList2 = cfg2.getAllNodes();
-		
-		for (GraphNode node1 : nodeList1) {
-			CFGNode cfgNode1 = (CFGNode)node1;
-			boolean found = false;
-			for (GraphNode node2 : nodeList2) {
-				CFGNode cfgNode2 = (CFGNode)node2;
-				
-				if (cfgNode1.getId().equals(cfgNode2.getId()) && cfgNode1.isStart() == cfgNode2.isStart() && 
-						cfgNode1.isAbnormalEnd() == cfgNode2.isAbnormalEnd() && cfgNode1.isNormalEnd() == cfgNode2.isNormalEnd()) {
-					found = true;
-					break;
-				}
-			}
-			if (found == false) {
-				Debug.println("Can not find CFG1 node " + node1.getId() + " in CFG2");
-				return false;
-			}
-		}
-		
-		for (GraphNode node2 : nodeList2) {
-			CFGNode cfgNode2 = (CFGNode)node2;
-			boolean found = false;
-			for (GraphNode node1 : nodeList1) {
-				CFGNode cfgNode1 = (CFGNode)node1;
-
-				if (cfgNode1.getId().equals(cfgNode2.getId()) && cfgNode1.isStart() == cfgNode2.isStart() && 
-						cfgNode1.isAbnormalEnd() == cfgNode2.isAbnormalEnd() && cfgNode1.isNormalEnd() == cfgNode2.isNormalEnd()) {
-					found = true;
-					break;
-				}
-			}
-			if (found == false) {
-				Debug.println("Can not find CFG2 node " + node2.getId() + " in CFG1");
-				return false;
-			}
-		}
-		
-		List<GraphEdge> edgeList1 = cfg1.getEdges();
-		List<GraphEdge> edgeList2 = cfg2.getEdges();
-		
-		for (GraphEdge edge1 : edgeList1) {
-			boolean found = false;
-			for (GraphEdge edge2 : edgeList2) {
-				if (edge1.getStartNode().getId().equals(edge2.getStartNode().getId()) && 
-						edge1.getEndNode().getId().equals(edge2.getEndNode().getId())) {
-					found = true;
-					break;
-				}
-			}
-			if (found == false) {
-				Debug.println("Can not find CFG1 edge in CFG2");
-				return false;
-			}
-		}
-		
-		for (GraphEdge edge2 : edgeList2) {
-			boolean found = false;
-			for (GraphEdge edge1 : edgeList1) {
-				if (edge1.getStartNode().getId().equals(edge2.getStartNode().getId()) && 
-						edge1.getEndNode().getId().equals(edge2.getEndNode().getId())) {
-					found = true;
-					break;
-				}
-			}
-			if (found == false) {
-				Debug.println("Can not find CFG2 edge in CFG1");
-				return false;
-			}
-		}
-		
-		return true;
-	}
 }
