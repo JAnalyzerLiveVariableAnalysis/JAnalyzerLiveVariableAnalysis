@@ -14,9 +14,12 @@ public class FileChooserAndOpener {
 	File file = null;
 	String fileContents = null;
 	String fileContentsWithLineNumber = null;
+	String parentPath = null;
+	String fullFilePath = null;
 	
 	JFrame parent = null;
-	 
+	JFileChooser chooser = null; 
+	
 	public FileChooserAndOpener(JFrame parent) {
 		this.parent = parent;
 	}
@@ -26,7 +29,10 @@ public class FileChooserAndOpener {
 	 * @return 如果选择成功返回 true ，否则返回 false
 	 */
 	public boolean chooseFileName() {
-		JFileChooser chooser = new JFileChooser();
+		if(chooser == null) {
+			chooser = new JFileChooser();
+		}
+		//JFileChooser chooser = new JFileChooser();
 
 		// 只打开 .java 文件
 		chooser.setFileFilter(new FileNameExtensionFilter("Java 源程序文件...", "java"));
@@ -36,9 +42,21 @@ public class FileChooserAndOpener {
 		
 		int result = chooser.showOpenDialog(parent);
 		if (result == JFileChooser.APPROVE_OPTION) {
-			file = chooser.getSelectedFile(); 
+			file = chooser.getSelectedFile();
+			fullFilePath = file.getAbsoluteFile().getAbsolutePath();
+			parentPath = file.getParent();
 			return true;
 		} else return false;
+	}
+	
+	//获取选定文件的父目录
+	public String getParentPath() {
+		return parentPath;
+	}
+	
+	//获取选定文件的完整目录
+	public String getFullFilePath() {
+		return fullFilePath;
 	}
 	
 	/** 
