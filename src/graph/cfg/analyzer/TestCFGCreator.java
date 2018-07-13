@@ -22,11 +22,14 @@ import nameTable.nameDefinition.MethodDefinition;
 import nameTable.nameDefinition.NameDefinition;
 import nameTable.nameDefinition.NameDefinitionKind;
 import nameTable.nameDefinition.TypeDefinition;
+import nameTable.nameDefinition.ImportedTypeDefinition;
 import nameTable.nameReference.NameReference;
 import nameTable.nameScope.CompilationUnitScope;
+import nameTable.nameScope.NameScope;
 import nameTable.visitor.NameDefinitionVisitor;
 import sourceCodeAST.CompilationUnitRecorder;
 import sourceCodeAST.SourceCodeFileSet;
+import sourceCodeAST.SourceCodeLocation;
 import util.Debug;
 
 /**
@@ -216,16 +219,22 @@ public class TestCFGCreator {
 		writer.flush();
 	}
 	
-	public static void testCreateCFGWithReachName(String path, PrintWriter output) {
+	public static String testCreateCFGWithReachName(String path, PrintWriter output) {
+		StringBuffer buffer = new StringBuffer();
+		
 		NameTableManager tableManager = NameTableManager.createNameTableManager(path);
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor(new NameDefinitionKindFilter(NameDefinitionKind.NDK_METHOD));
 		tableManager.accept(visitor);
 		List<NameDefinition> methodList = visitor.getResult();
-
+		
 		MethodDefinition maxMethod = null;
 		int maxLineNumber = 0;
+		//Debug.setStart("s"+methodList.size());
 		for (NameDefinition definition : methodList) {
+			/*MethodDefinition method = new MethodDefinition(definition.getSimpleName(), definition.getFullQualifiedName(),
+					definition.getLocation() ,definition.getScope(), d);*/
+			
 			MethodDefinition method = (MethodDefinition)definition;
 			if (maxMethod == null) {
 				maxMethod = method;
@@ -238,16 +247,23 @@ public class TestCFGCreator {
 				}
 			}
 		}
-		if (maxMethod == null) return;
+		
+		if (maxMethod == null) return buffer.toString();
 		
 		Debug.setStart("Begin creating CFG for method " + maxMethod.getUniqueId() + ", " + maxLineNumber + " lines...");
+		buffer.append("Begin creating CFG for method " + maxMethod.getUniqueId() + ", " + maxLineNumber + " lines..."+"\n");
+		
 		output.println("ExecutionPointId\tDefinedName\tValue\tNameLocation\tValueLocation");
+		buffer.append("ExecutionPointId\tDefinedName\tValue\tNameLocation\tValueLocation"+"\n");
+		
 		MethodDefinition method = maxMethod;
 		
 		ControlFlowGraph cfg = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
 		
 		List<GraphNode> nodeList = cfg.getAllNodes();
 		System.out.println("Before write execution point " + nodeList.size() + " nodes!");
+		buffer.append("Before write execution point " + nodeList.size() + " nodes!"+"\n");
+		
 		for (GraphNode graphNode : nodeList) {
 			if (graphNode instanceof ExecutionPoint) {
 				ExecutionPoint node = (ExecutionPoint)graphNode;
@@ -258,18 +274,23 @@ public class TestCFGCreator {
 					NameReference value = definedName.getValue();
 					if (definedName.getValue() != null) {
 						output.println("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]");
+						buffer.append("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]"+"\n");
 					} else {
 						output.println("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~");
+						buffer.append("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~"+"\n");
 					}
 				}
 			} else {
 				output.println(graphNode.getId() + "\t~~\t~~\t~~\t~~");
 				System.out.println("Found none execution point with defined name node!");
+				buffer.append("Found none execution point with defined name node!"+"\n");
 			}
 		}
 		
 		output.println();
 		output.println();
+		buffer.append("\n");
+		
 		try {
 			cfg.simplyWriteToDotFile(output);
 		} catch (Exception exc) {
@@ -277,10 +298,74 @@ public class TestCFGCreator {
 		}
 		Debug.time("After Create " + methodList.size() + " CFGs.....");
 		output.println();
+		return buffer.toString();
+	}
+	
+	public static String testCreateCFGWithFileName(String path, PrintWriter output) {
+		int totalCFGS = 0;
+		StringBuffer buffer = new StringBuffer();
+        NameTableManager tableManager = NameTableManager.createNameTableManager(path);
+		
+		NameDefinitionVisitor visitor = new NameDefinitionVisitor(new NameDefinitionKindFilter(NameDefinitionKind.NDK_METHOD));
+		tableManager.accept(visitor);
+		List<NameDefinition> methodList = visitor.getResult();
+		
+		for (NameDefinition definition : methodList) {
+			MethodDefinition method = (MethodDefinition)definition;
+			ControlFlowGraph cfg = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
+			
+			List<GraphNode> nodeList = cfg.getAllNodes();
+			
+			if(nodeList.isEmpty()) continue;
+			
+			System.out.println("Before write execution point " + nodeList.size() + " nodes!");
+			buffer.append("Before write execution point " + nodeList.size() + " nodes!"+"\n");
+			
+			totalCFGS += nodeList.size();
+			
+			for (GraphNode graphNode : nodeList) {
+				if (graphNode instanceof ExecutionPoint) {
+					ExecutionPoint node = (ExecutionPoint)graphNode;
+					ReachNameRecorder recorder = (ReachNameRecorder)node.getFlowInfoRecorder();
+					List<ReachNameDefinition> definedNameList = recorder.getReachNameList();
+					for (ReachNameDefinition definedName : definedNameList) {
+						NameDefinition name = definedName.getName();
+						NameReference value = definedName.getValue();
+						if (definedName.getValue() != null) {
+							output.println("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]");
+							buffer.append("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]"+"\n");
+						} else {
+							output.println("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~");
+							buffer.append("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~"+"\n");
+						}
+					}
+				} else {
+					output.println(graphNode.getId() + "\t~~\t~~\t~~\t~~");
+					System.out.println("Found none execution point with defined name node!");
+					buffer.append("Found none execution point with defined name node!"+"\n");
+				}
+			}
+			//nodeList.clear(); //清除 以便下一次循环重新加载nodeList
+			
+			output.println();
+			output.println();
+			
+			buffer.append("\n");
+			try {
+				cfg.simplyWriteToDotFile(output);
+			} catch (Exception exc) {
+				exc.printStackTrace();
+			}
+		}
+		
+		Debug.time("After Create " + totalCFGS + " CFGs.....");
+		output.println();
+		return buffer.toString();
 	}
 	
 
-	public static void testCreateCFG(String path, PrintWriter output) {
+	public static String testCreateCFG(String path, PrintWriter output) {
+		StringBuffer buffer = new StringBuffer();
 		NameTableManager tableManager = NameTableManager.createNameTableManager(path);
 		
 		NameDefinitionVisitor visitor = new NameDefinitionVisitor(new NameDefinitionKindFilter(NameDefinitionKind.NDK_METHOD));
@@ -290,38 +375,95 @@ public class TestCFGCreator {
 		Debug.flush();
 		int counter = 0;
 		Debug.setStart("Begin creating CFG and analysis dominate node...");
+		buffer.append("Begin creating CFG and analysis dominate node..."+"\n");
+		
 		for (NameDefinition definition : methodList) {
 			MethodDefinition method = (MethodDefinition)definition;
-//			if (!method.getSimpleName().equals("enable")) continue;
+			//if (!method.getSimpleName().equals("enable")) continue;
 			
-//			System.out.println("Method " + method.getFullQualifiedName());
+			System.out.println("Method " + method.getFullQualifiedName());
+			buffer.append("Method " + method.getFullQualifiedName() + "\n" + "\n");
 			ControlFlowGraph cfg1 = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
-//			ControlFlowGraph cfg2 = ReachNameAnalyzer.create(tableManager, method);
-//			if (compareTwoCFGs(cfg1, cfg2)) {
-//				Debug.println("Two CFGs are the same for method " + method.getFullQualifiedName());
-//			} else {
-//				Debug.println("\tTwo CFGs are different for method " + method.getFullQualifiedName());
-//				counter++;
-//			}
+			ControlFlowGraph cfg2 = ReachNameAnalyzer.create(tableManager, method);
+			List<GraphNode> nodeList = cfg1.getAllNodes();
+			for (GraphNode graphNode : nodeList) {
+				if (graphNode instanceof ExecutionPoint) {
+					ExecutionPoint node = (ExecutionPoint)graphNode;
+					ReachNameRecorder recorder = (ReachNameRecorder)node.getFlowInfoRecorder();
+					List<ReachNameDefinition> definedNameList = recorder.getReachNameList();
+					for (ReachNameDefinition definedName : definedNameList) {
+						NameDefinition name = definedName.getName();
+						NameReference value = definedName.getValue();
+						if (definedName.getValue() != null) {
+							output.println("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]");
+							buffer.append("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]"+"\n");
+						} else {
+							output.println("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~");
+							buffer.append("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~"+"\n");
+						}
+					}
+				} else {
+					output.println(graphNode.getId() + "\t~~\t~~\t~~\t~~");
+					System.out.println("Found none execution point with defined name node!");
+					buffer.append("Found none execution point with defined name node!"+"\n");
+				}
+			}
+			
+			/*if (compareTwoCFGs(cfg1, cfg2)) {
+				Debug.println("Two CFGs are the same for method " + method.getFullQualifiedName());
+			} else {
+				Debug.println("\tTwo CFGs are different for method " + method.getFullQualifiedName());
+				counter++;
+			}*/
 		}
 		Debug.time("After Create " + methodList.size() + " CFGs....., and there are " + counter + " different CFGs....");
+		buffer.append("After Create " + methodList.size() + " CFGs....., and there are " + counter + " different CFGs...." + "\n");
 		output.println();
 		
 		
 		Debug.setStart("Begin creating CFG and analysis reache name...");
 		for (NameDefinition definition : methodList) {
 			MethodDefinition method = (MethodDefinition)definition;
-//			if (!method.getSimpleName().equals("compareMethodDefinitionSignature")) continue;
+			//if (!method.getSimpleName().equals("compareMethodDefinitionSignature")) continue;
 
-//			System.out.println("Method " + method.getSimpleName());
+			System.out.println("Method " + method.getSimpleName());
+			buffer.append("Method " + method.getSimpleName() + "\n");
+			
 			ControlFlowGraph cfg = ReachNameAnalyzer.create(tableManager, method);
-//			try {
-//				cfg.simplyWriteToDotFile(output);
-//			} catch (Exception exc) {
-//				exc.printStackTrace();
-//			}
+	
+			try {
+				cfg.simplyWriteToDotFile(output);
+			} catch (Exception exc) {
+				exc.printStackTrace();
+			}
+			/*List<GraphNode> nodeList = cfg.getAllNodes();
+			for (GraphNode graphNode : nodeList) {
+				if (graphNode instanceof ExecutionPoint) {
+					ExecutionPoint node = (ExecutionPoint)graphNode;
+					ReachNameRecorder recorder = (ReachNameRecorder)node.getFlowInfoRecorder();
+					List<ReachNameDefinition> definedNameList = recorder.getReachNameList();
+					for (ReachNameDefinition definedName : definedNameList) {
+						NameDefinition name = definedName.getName();
+						NameReference value = definedName.getValue();
+						if (definedName.getValue() != null) {
+							output.println("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]");
+							buffer.append("[" + graphNode.getId() + "]\t" + name.getSimpleName() + "\t" + value.toSimpleString() + "\t[" + name.getLocation() + "]\t[" + value.getLocation() + "]"+"\n");
+						} else {
+							output.println("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~");
+							buffer.append("[" + graphNode.getId() + "]\t" + definedName.getName().getSimpleName() + "\t~~\t[" + name.getLocation() + "]\t~~"+"\n");
+						}
+					}
+				} else {
+					output.println(graphNode.getId() + "\t~~\t~~\t~~\t~~");
+					System.out.println("Found none execution point with defined name node!");
+					buffer.append("Found none execution point with defined name node!"+"\n");
+				}
+			}*/
+			
 		}
 		Debug.time("After Create " + methodList.size() + " CFGs.....");
+		buffer.append("After Create " + methodList.size() + " CFGs....." + "\n");
+		return buffer.toString();
 	}
 	
 }

@@ -2,13 +2,33 @@ package gui.astViewer;
 
 import gui.toolkit.FileChooserAndOpener;
 import gui.toolkit.MainFrame;
+import nameTable.nameScope.NameScope;
+import nameTable.NameTableManager;
+import nameTable.creator.NameTableCreator;
+import nameTable.nameDefinition.MethodDefinition;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.PrintWriter;
+import java.util.List;
 
 import javax.swing.*;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+
+import graph.cfg.ControlFlowGraph;
+import graph.cfg.creator.CFGCreator;
+
+import graph.cfg.analyzer.TestCFGCreator;
+
+import sourceCodeAST.CompilationUnitRecorder;
+import sourceCodeAST.SourceCodeFileSet;
+import sourceCodeAST.SourceCodeLocation;
+import util.Debug;;
 
 public class TestASTViewer {
 	public static void main(String[] args) {
@@ -36,14 +56,20 @@ class DemoMenuCreator {
 	private JTextArea sourceText;		// 用于放置源代码文件
 	private JTextArea astText;			// 用于放置抽象语法树
 	private JTextArea cfgText;			// 用于放置程序控制流图
+	private JTextArea fixValueText;     // 用于放置定值到达分析的图
 	private int cfgTabIndex;
+	private int fixValueIndex;
+	private PrintWriter output;
+	private List<ControlFlowGraph> cfgList = null; //用于存储控制流程图
 	
+	private NameTableManager manager;
 	private final String OPEN_COMMAND = "open";
 	private final String ASTPARSER_COMMAND = "astparser";
 	private final String ABOUT_COMMAND = "about";
 	private final String EXIT_COMMAND = "exit";
 	private final String CONCISEAST_COMMAND = "consiceast";
 	private final String CREATE_CFG_COMMAND = "createCFG";
+	private final String FIXED_VALUE_COMMAND = "fixedVAL";
 	
 	private FileChooserAndOpener fileOpener = null;
 	private CompilationUnit astRoot = null;
@@ -52,6 +78,12 @@ class DemoMenuCreator {
 		this.place = place;
 		this.topLevelFrame = topLevelFrame;
 		fileOpener = new FileChooserAndOpener(topLevelFrame);
+		try {
+			OutputStream os = new FileOutputStream("C:\\Java\\test2.dot");
+			output = new PrintWriter(os);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 	
 	// 创建用于演示的组件
@@ -79,6 +111,12 @@ class DemoMenuCreator {
 		scrollPane = new JScrollPane(cfgText);
 		tabbedPane.addTab("控制流图", scrollPane);
 		cfgTabIndex = 1;
+		
+		fixValueText = new JTextArea();
+		fixValueText.setEditable(false);
+		scrollPane = new JScrollPane(fixValueText);
+		tabbedPane.addTab("定值到达分析图", scrollPane);
+		fixValueIndex = 2;
 		
 		hSplitPane.resetToPreferredSizes();
 		
@@ -132,6 +170,18 @@ class DemoMenuCreator {
 		menuItem.setActionCommand(CREATE_CFG_COMMAND);		// 设置命令为退出程序
 		menu.add(menuItem);						// 加入到第二个主菜单项
 
+		
+		// 设置第一个主菜单项的第五个子菜单项
+		menuItem = new JMenuItem("定值到达分析(V)", null);
+		menuItem.setMnemonic(KeyEvent.VK_V);
+		// 设置此菜单项的加速键为Ctrl+V
+		menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, 
+				ActionEvent.CTRL_MASK));
+		menuItem.addActionListener(menuListener);
+		menuItem.setActionCommand(FIXED_VALUE_COMMAND);		// 设置命令为退出程序
+		menu.add(menuItem);						// 加入到第二个主菜单项
+		
+		
 		menu.addSeparator();
 		// 为第一个主菜单添加最后一个菜单项
 		menuItem = new JMenuItem("退出");
@@ -166,6 +216,7 @@ class DemoMenuCreator {
 					astText.setText("");
 					cfgText.setText("");
 				}
+				System.out.println(fileOpener.getFileContents());
 			} else if (command.equals(ASTPARSER_COMMAND)) {
 				String fileContents = fileOpener.getFileContents();
 				if (fileContents == null) {
@@ -205,12 +256,12 @@ class DemoMenuCreator {
 				if (errorMessage != null) {
 					JOptionPane.showMessageDialog(MainFrame.getMainFrame(), 
 							"编译出现错误：\n" + errorMessage, "警示", JOptionPane.WARNING_MESSAGE);					
-				} 
+				}
 				if (viewer.hasParserError()) astRoot = null;
 				else astRoot = viewer.getASTRoot();
 				astText.setText(viewer.getASTViewerText());
 				tabbedPane.setSelectedIndex(astTabIndex);
-			} else if (command.equals(CREATE_CFG_COMMAND)){
+			} else if (command.equals(CREATE_CFG_COMMAND)) {
 				String fileContents = fileOpener.getFileContents();
 				if (fileContents == null) {
 					fileOpener.chooseFileName();
@@ -233,7 +284,6 @@ class DemoMenuCreator {
 					astRoot = viewer.getASTRoot();
 					astText.setText(viewer.getASTViewerText());
 				}
-
 				try {
 					ControlFlowGraphViewer viewer = new ControlFlowGraphViewer(fileOpener.getFileName(), astRoot);
 					cfgText.setText(viewer.createCFGToText());
@@ -244,6 +294,42 @@ class DemoMenuCreator {
 					JOptionPane.showMessageDialog(MainFrame.getMainFrame(), 
 							"生成控制流图发生错误！", "警示", JOptionPane.WARNING_MESSAGE);
 				}
+			} else if(command.equals(FIXED_VALUE_COMMAND)) {
+				String fileContents = fileOpener.getFileContents();
+				
+				if (fileContents == null) {
+					fileOpener.chooseFileName();
+					fileOpener.loadFile();
+					fileContents = fileOpener.getFileContents();
+					topLevelFrame.setTitle(fileOpener.getFileName()); 
+					astRoot = null;
+				}
+				sourceText.setText(fileOpener.getFileContentsWithLineNumber());
+				String projectRootPath = fileOpener.getParentPath();  //对整个目录下的所有java文件中的最大的方法定义进行分析
+				
+				//String projectRootPath = fileOpener.getFullFilePath();  //对单个java文件进行分析
+				Debug.setStart(projectRootPath);
+				
+				
+				//Debug.setStart(projectRootPath);
+				String result = TestCFGCreator.testCreateCFGWithReachName(projectRootPath, output); //对整个目录下的所有java文件中的最大的方法定义进行分析
+				
+				//String result = TestCFGCreator.testCreateCFG(projectRootPath, output);  //对单个java文件进行分析
+				fixValueText.setText(result);
+				tabbedPane.setSelectedIndex(fixValueIndex);
+				
+				
+				/*try {
+					ControlFlowGraphViewer viewer = new ControlFlowGraphViewer(fileOpener.getFileName(), astRoot);
+					cfgText.setText(viewer.createCFGToText());
+					tabbedPane.setSelectedIndex(cfgTabIndex);
+				} catch (Exception exp) {
+					exp.printStackTrace();
+					cfgText.setText(exp.toString());
+					JOptionPane.showMessageDialog(MainFrame.getMainFrame(), 
+							"生成控制流图发生错误！", "警示", JOptionPane.WARNING_MESSAGE);
+				}*/
+				
 			} else {
 				// 弹出一窗口显示一些信息
 				JOptionPane.showMessageDialog(MainFrame.getMainFrame(), 
