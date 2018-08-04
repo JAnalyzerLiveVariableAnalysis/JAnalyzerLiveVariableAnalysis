@@ -312,12 +312,15 @@ public class TestCFGCreator {
 		
 		for (NameDefinition definition : methodList) {
 			MethodDefinition method = (MethodDefinition)definition;
-			ControlFlowGraph cfg = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
+			//ControlFlowGraph cfg = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
+			ControlFlowGraph cfg = ReachNameAnalyzer.create(tableManager, method);
+			if(cfg == null) continue;
+			//if(cfg.getAllNodes() == null) continue;
 			
 			List<GraphNode> nodeList = cfg.getAllNodes();
 			
 			if(nodeList.isEmpty()) continue;
-			
+	
 			System.out.println("Before write execution point " + nodeList.size() + " nodes!");
 			buffer.append("Before write execution point " + nodeList.size() + " nodes!"+"\n");
 			
@@ -345,7 +348,7 @@ public class TestCFGCreator {
 					buffer.append("Found none execution point with defined name node!"+"\n");
 				}
 			}
-			//nodeList.clear(); //清除 以便下一次循环重新加载nodeList
+			nodeList.clear(); //清除 以便下一次循环重新加载nodeList
 			
 			output.println();
 			output.println();
@@ -364,6 +367,7 @@ public class TestCFGCreator {
 	}
 	
 
+	//对单个java文件进行定值到达分析
 	public static String testCreateCFG(String path, PrintWriter output) {
 		StringBuffer buffer = new StringBuffer();
 		NameTableManager tableManager = NameTableManager.createNameTableManager(path);
@@ -383,9 +387,9 @@ public class TestCFGCreator {
 			
 			System.out.println("Method " + method.getFullQualifiedName());
 			buffer.append("Method " + method.getFullQualifiedName() + "\n" + "\n");
-			ControlFlowGraph cfg1 = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
+			//ControlFlowGraph cfg1 = ReachNameAndDominateNodeAnalyzer.create(tableManager, method);
 			ControlFlowGraph cfg2 = ReachNameAnalyzer.create(tableManager, method);
-			List<GraphNode> nodeList = cfg1.getAllNodes();
+			List<GraphNode> nodeList = cfg2.getAllNodes();
 			for (GraphNode graphNode : nodeList) {
 				if (graphNode instanceof ExecutionPoint) {
 					ExecutionPoint node = (ExecutionPoint)graphNode;
