@@ -305,16 +305,16 @@ class DemoMenuCreator {
 					astRoot = null;
 				}
 				sourceText.setText(fileOpener.getFileContentsWithLineNumber());
-				String projectRootPath = fileOpener.getParentPath();  //对整个目录下的所有java文件中的最大的方法定义进行分析
+				//String projectRootPath = fileOpener.getParentPath();  //对整个目录下的所有java文件中的最大的方法定义进行分析
 				
-				//String projectRootPath = fileOpener.getFullFilePath();  //对单个java文件进行分析
+				String projectRootPath = fileOpener.getFullFilePath();  //对单个java文件进行分析
 				Debug.setStart(projectRootPath);
 				
 				
 				//Debug.setStart(projectRootPath);
-				String result = TestCFGCreator.testCreateCFGWithReachName(projectRootPath, output); //对整个目录下的所有java文件中的最大的方法定义进行分析
+				//String result = TestCFGCreator.testCreateCFGWithReachName(projectRootPath, output); //对整个目录下的所有java文件中的最大的方法定义进行分析
 				
-				//String result = TestCFGCreator.testCreateCFG(projectRootPath, output);  //对单个java文件进行分析
+				String result = TestCFGCreator.testCreateCFGWithFileName(projectRootPath, output);  //对单个java文件进行分析
 				fixValueText.setText(result);
 				tabbedPane.setSelectedIndex(fixValueIndex);
 				
